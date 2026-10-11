@@ -33,8 +33,6 @@ class Logger(QObject):
         QEvent.Type.Shortcut,
         QEvent.Type.ShortcutOverride,
         QEvent.Type.Close,
-        QEvent.Type.Show,
-        QEvent.Type.Hide,
         QEvent.Type.DragEnter,
         QEvent.Type.DragMove,
         QEvent.Type.DragLeave,

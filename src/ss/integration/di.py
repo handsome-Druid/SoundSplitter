@@ -10,8 +10,7 @@ from dishka import (
 )
 from dishka.dependency_source import CompositeDependencySource
 
-from ss.external import Config
-from ss.flow import Start
+from ss.flow import Config, Start
 
 
 class DI:

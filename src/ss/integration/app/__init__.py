@@ -25,6 +25,7 @@ from PySide6.QtCore import (
 )
 from PySide6.QtGui import QAction, QCloseEvent, QCursor, QGuiApplication, QIcon, QScreen
 from PySide6.QtMultimedia import QAudioDevice, QMediaDevices
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import (
     QApplication,
     QDialog,
@@ -38,8 +39,7 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
-from ss.external import Config
-from ss.flow import Start, Volume
+from ss.flow import Config, Start, Volume
 
 from .resources import resources_rc
 
@@ -115,6 +115,12 @@ class APP:
             self._lock.setStaleLockTime(0)
             if not self._lock.tryLock(0):
                 if self._lock.error() == QLockFile.LockError.LockFailedError:
+                    socket = QLocalSocket(parent=self._app)
+                    socket.connectToServer(self._app.applicationName())
+                    if socket.waitForConnected(msecs=500):
+                        socket.write(b"SHOW")
+                        if socket.waitForBytesWritten(msecs=500):
+                            exit(0)
                     raise RuntimeError(
                         self.tr(
                             "Another instance is already running. Check the system tray."
@@ -512,8 +518,13 @@ class APP:
             self._mediadevices.audioOutputsChanged.connect(
                 self._on_audio_device_changed
             )
+            self._server = QLocalServer(parent=self._app)
+            self._server.newConnection.connect(self._on_new_connection)
+            self._server.listen(self._app.applicationName())
             self._ui.startPushButton.click()
         except BaseException as e:
+            if isinstance(e, SystemExit) and e.code == 0:
+                raise
             getattr(self, "_message_box", QMessageBox).critical(
                 getattr(self, "_window", None),
                 self._app.applicationName() if hasattr(self, "_app") else "Critical",
@@ -1077,3 +1088,15 @@ class APP:
         else:
             self._ui.rightToolButton.setIcon(self._volume_3)
         self._volume.right_mute = not checked
+
+    @Slot()
+    def _on_new_connection(self) -> None:
+        socket: QLocalSocket = self._server.nextPendingConnection()
+        socket.readyRead.connect(
+            lambda socket=socket: (
+                self._show_action.trigger()
+                if socket.readAll().data() == b"SHOW"
+                else None,
+                socket.disconnectFromServer(),
+            )
+        )

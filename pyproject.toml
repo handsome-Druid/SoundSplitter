@@ -2,6 +2,7 @@
 name = "ss"
 version = "1.1.1"
 description = "Windows 音频分流工具，将输入音频的左右声道分别输出到两个设备，支持音量跟随和延迟调整。"
+authors = [{ name = "山泥若叶睦" }]
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -17,6 +18,9 @@ dependencies = [
 
 [project.scripts]
 ss = "ss:main"
+
+[project.urls]
+Repository = "https://github.com/handsome-Druid/SoundSplitter"
 
 [build-system]
 requires = ["uv_build>=0.12.22,<0.13.0"]
