@@ -4,5 +4,4 @@ from .integration import APP, DI, Logger
 
 
 def main() -> NoReturn:
-    Logger()
-    APP(DI())()
+    APP(DI(), Logger)()

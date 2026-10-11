@@ -5,75 +5,80 @@
     <name>APP</name>
     <message>
         <location filename="../src/ss/integration/app/__init__.py" line="103"/>
+        <source>Unable to create the log folder in the local data directory. Please check permissions or available disk space.</source>
+        <translation type="unfinished">程序无法在本地数据目录中创建日志文件夹，请检查权限或磁盘空间。</translation>
+    </message>
+    <message>
+        <location filename="../src/ss/integration/app/__init__.py" line="120"/>
         <source>Another instance is already running. Check the system tray.</source>
         <translation>已有一个实例正在运行；请检查系统托盘。</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="109"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="126"/>
         <source>Could not create the single-instance lock. Check the directory permissions.</source>
         <translation>无法创建单实例锁；请检查目录权限。</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="126"/>
-        <location filename="../src/ss/integration/app/__init__.py" line="162"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="148"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="184"/>
         <source>Exit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="129"/>
-        <location filename="../src/ss/integration/app/__init__.py" line="163"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="151"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="185"/>
         <source>Show Main Window</source>
         <translation>显示主窗口</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="132"/>
-        <location filename="../src/ss/integration/app/__init__.py" line="164"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="154"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="186"/>
         <source>Hide to Tray</source>
         <translation>隐藏到托盘</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="181"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="203"/>
         <source>Are you sure you want to exit?</source>
         <translation>确认要退出吗？</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="55"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="56"/>
         <source>Left Buffer Time (ms)</source>
         <translation>左声道缓冲时间（毫秒）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="56"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="57"/>
         <source>Right Buffer Time (ms)</source>
         <translation>右声道缓冲时间（毫秒）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="57"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="58"/>
         <source>Source Buffer Time (ms)</source>
         <translation>音频源缓冲时间（毫秒）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="58"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="59"/>
         <source>Left Native Period (frames)</source>
         <translation>左声道原生周期（帧）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="59"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="60"/>
         <source>Right Native Period (frames)</source>
         <translation>右声道原生周期（帧）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="60"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="61"/>
         <source>Source Native Period (frames)</source>
         <translation>音频源原生周期（帧）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="944"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="966"/>
         <source>: Invalid Value.</source>
         <translation>：无效的值。</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="167"/>
-        <location filename="../src/ss/integration/app/__init__.py" line="595"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="189"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="617"/>
         <source>Audio input source selected:</source>
         <translation>已选择音频输入源：</translation>
     </message>
@@ -238,8 +243,8 @@
         <translation type="vanished">音频源原生周期（帧）</translation>
     </message>
     <message>
-        <location filename="../src/ss/integration/app/__init__.py" line="459"/>
-        <location filename="../src/ss/integration/app/__init__.py" line="472"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="481"/>
+        <location filename="../src/ss/integration/app/__init__.py" line="494"/>
         <source>Audio input source selected:</source>
         <translation>已选择音频输入源：</translation>
     </message>

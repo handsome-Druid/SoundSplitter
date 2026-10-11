@@ -12,6 +12,7 @@ from PySide6.QtCore import (
     QLibraryInfo,
     QLocale,
     QLockFile,
+    QObject,
     QPoint,
     QRect,
     QSettings,
@@ -73,7 +74,14 @@ class APP:
             self._hidden.add(self._window)
         exit(self._app.exec())
 
-    def __init__(self, di: _DI, /, *, main_window: QMainWindow | None = None) -> None:
+    def __init__(
+        self,
+        di: _DI,
+        Logger: Callable[[str, QObject], QObject],
+        /,
+        *,
+        main_window: QMainWindow | None = None,
+    ) -> None:
         try:
             self._di: APP._DI = di
             if "--hide" in argv:
@@ -89,10 +97,19 @@ class APP:
             self._message_box = QMessageBox(parent=self._window)
             self._app.setApplicationName(self._window.windowTitle())
             self._config: Config = self._di.get(Config)
-            self._start: Start = self._di.get(Start)
-            self._volume = Volume(parent=self._window)
-            self._app.aboutToQuit.connect(
-                lambda: self._volume.__exit__(None, None, None)
+            if not self._config.dir_.mkpath("logs"):
+                raise OSError(
+                    self.tr(
+                        "Unable to create the log folder in the local data directory. Please check permissions or available disk space."
+                    )
+                )
+            cast(QCoreApplication, self._app.instance()).installEventFilter(
+                Logger(
+                    self._config.dir_.absoluteFilePath(
+                        "logs/" + self._app.applicationName() + ".log"
+                    ),
+                    self._window,
+                )
             )
             self._lock = QLockFile(self._config.dir_.filePath(".lock"))
             self._lock.setStaleLockTime(0)
@@ -109,6 +126,11 @@ class APP:
                             "Could not create the single-instance lock. Check the directory permissions."
                         )
                     )
+            self._start: Start = self._di.get(Start)
+            self._volume = Volume(parent=self._window)
+            self._app.aboutToQuit.connect(
+                lambda: self._volume.__exit__(None, None, None)
+            )
             self._window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, on=False)
             icon = QIcon(":/image/icon")
             self._tray_icon = QSystemTrayIcon(
@@ -619,6 +641,11 @@ class APP:
         device: QAudioDevice = current.data(Qt.ItemDataRole.UserRole)
         try:
             self._config.left_device = device
+            self._volume.left = device.description()
+            self._ui.leftHorizontalSlider.setValue(
+                round(number=self._volume.left_volume_percent)
+            )
+            self._ui.leftToolButton.setChecked(not self._volume.left_mute)
         except ValidationError as e:
             if self._window.isVisible():
                 box = QMessageBox(
@@ -649,11 +676,6 @@ class APP:
                     else self._ui.leftListWidget.setCurrentItem(previous)
                 ),
             )
-        self._volume.left = device.description()
-        self._ui.leftHorizontalSlider.setValue(
-            round(number=self._volume.left_volume_percent)
-        )
-        self._ui.leftToolButton.setChecked(not self._volume.left_mute)
 
     @Slot(QListWidgetItem, QListWidgetItem)
     def on_right_list_widget_current_item_changed(
@@ -666,6 +688,11 @@ class APP:
         device: QAudioDevice = current.data(Qt.ItemDataRole.UserRole)
         try:
             self._config.right_device = device
+            self._volume.right = device.description()
+            self._ui.rightHorizontalSlider.setValue(
+                round(number=self._volume.right_volume_percent)
+            )
+            self._ui.rightToolButton.setChecked(not self._volume.right_mute)
         except ValidationError as e:
             if self._window.isVisible():
                 box = QMessageBox(
@@ -696,11 +723,6 @@ class APP:
                     else self._ui.rightListWidget.setCurrentItem(previous)
                 ),
             )
-        self._volume.right = device.description()
-        self._ui.rightHorizontalSlider.setValue(
-            round(number=self._volume.right_volume_percent)
-        )
-        self._ui.rightToolButton.setChecked(not self._volume.right_mute)
 
     @Slot(Qt.CheckState)
     def _on_check_box_check_state_changed(self, state: Qt.CheckState) -> None:
