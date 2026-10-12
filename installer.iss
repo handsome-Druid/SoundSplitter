@@ -49,9 +49,52 @@ Name: "{commonprograms}\{#AppName}"; Filename: "{app}\bin\ss.exe"
 Filename: "{app}\bin\ss.exe"; Description: "Launch {#AppName}"; Flags: nowait postinstall skipifsilent
 Filename: "https://vb-audio.com/Cable/"; Description: "VB-CABLE is not installed. Open its download page"; Flags: shellexec postinstall nowait skipifsilent; Check: not VbCableInstalled
 
+[UninstallDelete]
+Type: filesandordirs; Name: "{localappdata}\{#AppName}"; Check: ShouldDeleteLocalData
+
 [Code]
+var
+  DeleteLocalDataPage: TInputOptionWizardPage;
+
 function VbCableInstalled: Boolean;
 begin
   Result := RegKeyExists(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Services\VBAudioVACMME');
+end;
+
+function ShouldDeleteLocalData: Boolean;
+begin
+  Result := DeleteLocalDataPage.Values[0];
+end;
+
+procedure InitializeUninstallWizard;
+begin
+  DeleteLocalDataPage := CreateInputOptionPage(
+    wpWelcome,
+    'Remove Local Data',
+    'Choose whether to remove local data',
+    'If selected, SoundSplitter configuration and local settings will also be removed.',
+    False,
+    False
+  );
+  DeleteLocalDataPage.Add('Remove local data');
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    if RegValueExists(
+      HKEY_CURRENT_USER,
+      'Software\Microsoft\Windows\CurrentVersion\Run',
+      '{#AppName}'
+    ) then
+    begin
+      RegDeleteValue(
+        HKEY_CURRENT_USER,
+        'Software\Microsoft\Windows\CurrentVersion\Run',
+        '{#AppName}'
+      );
+    end;
+  end;
 end;
 

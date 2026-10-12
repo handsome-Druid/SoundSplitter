@@ -11,19 +11,29 @@ from logging import (
     basicConfig,
     getLogger,
 )
-from logging import (
-    Logger as Logger_,
-)
 from logging.handlers import RotatingFileHandler
 from sys import argv
 from typing import ClassVar, Literal, TextIO, override
 
-from PySide6.QtCore import QEvent, QObject
+from PySide6.QtCore import (
+    QEvent,
+    QObject,
+    QtMsgType,
+    qInstallMessageHandler,
+)
 from PySide6.QtGui import QWindow
+from PySide6.QtWidgets import (
+    QMenuBar,
+    QScrollBar,
+    QSizeGrip,
+    QSplitterHandle,
+    QStatusBar,
+    QToolBar,
+    QWidget,
+)
 
 
 class Logger(QObject):
-    _logger: Logger_ = getLogger(name=__name__)
     _types: ClassVar[set[QEvent.Type]] = {
         QEvent.Type.MouseButtonPress,
         QEvent.Type.MouseButtonRelease,
@@ -39,6 +49,22 @@ class Logger(QObject):
         QEvent.Type.Drop,
         QEvent.Type.ContextMenu,
         QEvent.Type.InputMethod,
+    }
+    _levels: ClassVar[dict[QtMsgType, int]] = {
+        QtMsgType.QtDebugMsg: DEBUG,
+        QtMsgType.QtInfoMsg: INFO,
+        QtMsgType.QtWarningMsg: WARNING,
+        QtMsgType.QtCriticalMsg: ERROR,
+        QtMsgType.QtFatalMsg: CRITICAL,
+    }
+    _ignored: ClassVar[set[type[QObject]]] = {
+        QMenuBar,
+        QScrollBar,
+        QSizeGrip,
+        QSplitterHandle,
+        QStatusBar,
+        QToolBar,
+        QWidget,
     }
 
     class _Formatter(Formatter):
@@ -70,7 +96,8 @@ class Logger(QObject):
         stream_handler: StreamHandler[TextIO] = StreamHandler()
         stream_handler.setFormatter(
             fmt=self._Formatter(
-                fmt="%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S"
+                fmt="%(asctime)s | %(levelname)s | %(name)s: %(message)s",
+                datefmt="%H:%M:%S",
             )
         )
         rotating_file_handler = RotatingFileHandler(
@@ -78,7 +105,7 @@ class Logger(QObject):
         )
         rotating_file_handler.setFormatter(
             fmt=Formatter(
-                fmt="%(asctime)s | %(levelname)-7s | %(message)s",
+                fmt="%(asctime)s | %(levelname)-7s [%(name)s] %(message)s",
                 datefmt="%Y-%m-%d %H:%M:%S",
             )
         )
@@ -89,20 +116,33 @@ class Logger(QObject):
         else:
             self._debug = False
             basicConfig(level=INFO, handlers=(stream_handler, rotating_file_handler))
+        qInstallMessageHandler(
+            lambda msg_type, context, message: getLogger(name=context.category).log(
+                level=self._levels[msg_type], msg=message
+            )
+        )
 
     @override
     def eventFilter(self, watched: QObject, event: QEvent) -> Literal[False]:
-        if isinstance(watched, QWindow) or not event.spontaneous():
+        if (
+            isinstance(watched, QWindow)
+            or type(watched) in self._ignored
+            or not event.spontaneous()
+        ):
             return False
-        type: QEvent.Type = event.type()
-        if type not in self._types:
+        type_: QEvent.Type = event.type()
+        if type_ not in self._types:
             if self._debug:
-                self._logger.debug(
-                    msg=f"[{watched.objectName()}] [{watched.metaObject().className()}] [{type.name}] -> {event}"
-                )
+                getLogger(name=self._category(watched)).debug(msg=event)
             return False
         else:
-            self._logger.info(
-                msg=f"[{watched.objectName()}] [{watched.metaObject().className()}] [{type.name}] {event}"
-            )
+            getLogger(name=self._category(watched)).info(msg=event)
         return False
+
+    def _category(self, watched: QObject) -> str:
+        parts: list[str] = []
+        parent: QObject | None = watched
+        while parent is not None:
+            parts.append(parent.objectName() or parent.metaObject().className())
+            parent = parent.parent()
+        return ".".join(reversed(parts))

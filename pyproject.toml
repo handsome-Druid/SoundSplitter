@@ -18,6 +18,7 @@ dependencies = [
 
 [project.scripts]
 ss = "ss:main"
+setup = "setup:main"
 
 [project.urls]
 Repository = "https://github.com/handsome-Druid/SoundSplitter"
@@ -38,23 +39,23 @@ dev = [
 
 [tool.ruff]
 extend-exclude = [
-    "src/ss/integration/app/resources",
-    "src/ss/integration/app/ui",
+    "**/**_ui.py",
+    "**/**_rc.py",
 ]
 force-exclude = true
 
 [tool.pyright]
 exclude = [
-    "src/ss/integration/app/resources",
-    "src/ss/integration/app/ui",
+    "**/**_ui.py",
+    "**/**_rc.py",
 ]
 ignore = [
-    "src/ss/integration/app/resources",
-    "src/ss/integration/app/ui",
+    "**/**_ui.py",
+    "**/**_rc.py",
 ]
 
 [tool.deptry]
 exclude = [
-    "src/ss/integration/app/resources",
-    "src/ss/integration/app/ui",
+    "**/**_ui.py",
+    "**/**_rc.py",
 ]
