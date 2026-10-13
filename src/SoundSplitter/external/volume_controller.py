@@ -6,7 +6,7 @@ from pycaw.constants import DEVICE_STATE, EDataFlow
 from pycaw.pycaw import AudioUtilities
 from PySide6.QtCore import QObject
 
-from ss.common.volume import VolumeCallback, VolumeObject
+from SoundSplitter.common.volume import VolumeCallback, VolumeObject
 
 
 class VolumeController(VolumeObject):

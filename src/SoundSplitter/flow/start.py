@@ -31,7 +31,7 @@ from PySide6.QtCore import (
 from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink, QAudioSource
 from shiboken6 import isValid
 
-from ss.external import Config, Split, VolumeMonitor
+from SoundSplitter.external import Config, Split, VolumeMonitor
 
 
 class Start(QObject):

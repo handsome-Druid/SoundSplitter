@@ -1,4 +1,4 @@
-from ss import main
+from SoundSplitter import main
 
 if __name__ == "__main__":
     main()

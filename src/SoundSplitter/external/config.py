@@ -7,7 +7,7 @@ from pydantic_yaml import (
 from PySide6.QtCore import QCoreApplication, QDir, QFile, QFileInfo, QStandardPaths
 from PySide6.QtMultimedia import QAudioDevice, QMediaDevices
 
-from ss.common.migration import V2, Migration
+from SoundSplitter.common.migration import V2, Migration
 
 
 class Config(V2):

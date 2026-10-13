@@ -6,7 +6,7 @@ from pycaw.utils import AudioDevice, AudioUtilities
 from PySide6.QtCore import QMutex, QObject, Qt, Signal, Slot
 from PySide6.QtMultimedia import QAudioDevice, QAudioSink
 
-from ss.common.volume import VolumeCallback, VolumeObject
+from SoundSplitter.common.volume import VolumeCallback, VolumeObject
 
 
 class VolumeMonitor(VolumeObject):

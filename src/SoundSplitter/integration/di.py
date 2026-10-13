@@ -10,7 +10,7 @@ from dishka import (
 )
 from dishka.dependency_source import CompositeDependencySource
 
-from ss.flow import Config, Start
+from SoundSplitter.flow import Config, Start
 
 
 class DI:

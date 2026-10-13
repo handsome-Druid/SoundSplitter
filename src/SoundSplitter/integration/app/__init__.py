@@ -39,7 +39,7 @@ from PySide6.QtWidgets import (
 )
 from shiboken6 import isValid
 
-from ss.flow import Config, Start, Volume
+from SoundSplitter.flow import Config, Start, Volume
 
 from .resources import resources_rc
 
