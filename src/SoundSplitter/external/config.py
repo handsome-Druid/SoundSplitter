@@ -4,8 +4,9 @@ from pydantic import ConfigDict, ValidationError
 from pydantic_yaml import (
     to_yaml_file,  # pyright: ignore[reportUnknownVariableType]
 )
-from PySide6.QtCore import QCoreApplication, QDir, QFile, QFileInfo, QStandardPaths
+from PySide6.QtCore import QCoreApplication, QDir, QFile, QFileInfo, QProcessEnvironment
 from PySide6.QtMultimedia import QAudioDevice, QMediaDevices
+from PySide6.QtWidgets import QApplication
 
 from SoundSplitter.common.migration import V2, Migration
 
@@ -91,22 +92,21 @@ class Config(V2):
                     raise OSError(
                         f"cd {Config.containing_dir.path()}/../" + Config.tr(" failed.")
                     )
-        if not QDir().mkpath(
-            QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.AppLocalDataLocation
-            )
-        ):
+        app: QCoreApplication | None = QApplication.instance()
+        assert app is not None
+        path: str = (
+            QProcessEnvironment.systemEnvironment().value("PROGRAMDATA")
+            + "/"
+            + app.applicationName()
+        )
+        if not QDir().mkpath(path):
             raise OSError(
                 Config.tr(
                     "Unable to create the required folder in the local data directory. "
                     "Please check permissions or available disk space."
                 )
             )
-        Config.dir_ = QDir(
-            path=QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.AppLocalDataLocation
-            )
-        )
+        Config.dir_ = QDir(path)
         Config._file = QFile(Config.dir_.filePath("config.yml"))
         if Config._file.exists() and Config._file.size() > 0:
             return Config.model_validate(obj=Migration(Config._file.fileName()))

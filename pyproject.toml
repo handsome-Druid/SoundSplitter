@@ -1,6 +1,6 @@
 [project]
-name = "ss"
-version = "1.1.1"
+name = "SoundSplitter"
+dynamic = ["version"]
 description = "Windows 音频分流工具，将输入音频的左右声道分别输出到两个设备，支持音量跟随和延迟调整。"
 authors = [{ name = "山泥若叶睦" }]
 readme = "README.md"
@@ -17,15 +17,18 @@ dependencies = [
 ]
 
 [project.scripts]
-ss = "ss:main"
+SoundSplitter = "SoundSplitter:main"
 setup = "setup:main"
 
 [project.urls]
 Repository = "https://github.com/handsome-Druid/SoundSplitter"
 
 [build-system]
-requires = ["uv_build>=0.12.22,<0.13.0"]
-build-backend = "uv_build"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/setup/__about__.py"
 
 [dependency-groups]
 dev = [
@@ -38,6 +41,7 @@ dev = [
 ]
 
 [tool.ruff]
+lint.ignore = ["N999"]
 extend-exclude = [
     "**/**_ui.py",
     "**/**_rc.py",

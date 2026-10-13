@@ -46,7 +46,7 @@
     <string>Welcome to SoundSplitter</string>
    </property>
    <property name="subTitle">
-    <string>This wizard will guide you through the installation of SoundSpliter</string>
+    <string>This wizard will guide you through the installation of SoundSplitter</string>
    </property>
    <widget class="QLabel" name="label">
     <property name="geometry">
@@ -145,7 +145,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QTextBrowser" name="textBrowser"/>
+      <widget class="QTextBrowser" name="licenseTextBrowser"/>
      </item>
      <item>
       <widget class="QCheckBox" name="licenseCheckBox">
@@ -165,28 +165,18 @@
     <string>Installation Options</string>
    </property>
    <property name="subTitle">
-    <string>Choose which shortcuts you would like to create</string>
+    <string>Customize how SoundSplitter is installed and launched.</string>
    </property>
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>30</x>
-      <y>0</y>
-      <width>441</width>
+      <y>10</y>
+      <width>541</width>
       <height>231</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_5">
-     <item>
-      <widget class="QLabel" name="label_11">
-       <property name="styleSheet">
-        <string notr="true">font-size: 20px</string>
-       </property>
-       <property name="text">
-        <string>Create Shortcuts</string>
-       </property>
-      </widget>
-     </item>
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_4">
        <property name="spacing">
@@ -206,6 +196,13 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QCheckBox" name="startupCheckBox">
+         <property name="text">
+          <string>Launch SoundSplitter at system startup</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
     </layout>
@@ -218,13 +215,60 @@
    <property name="subTitle">
     <string>Please wait while SoundSplitter is being installed.</string>
    </property>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>12</x>
+      <y>312</y>
+      <width>331</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>-1</pointsize>
+      <fontweight>ExtraLight</fontweight>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(100, 100, 100)</string>
+    </property>
+    <property name="text">
+     <string>Please do not close the setup wizard during installation.</string>
+    </property>
+   </widget>
    <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>10</y>
+      <x>10</x>
+      <y>94</y>
       <width>561</width>
-      <height>321</height>
+      <height>211</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <widget class="QTextBrowser" name="InstallationTextBrowser"/>
+     </item>
+     <item>
+      <widget class="QToolButton" name="toolButton">
+       <property name="text">
+        <string>Show details</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>11</x>
+      <y>11</y>
+      <width>561</width>
+      <height>79</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -249,126 +293,101 @@
        <property name="value">
         <number>0</number>
        </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignCenter</set>
+       </property>
       </widget>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="verticalLayout_2">
-       <property name="spacing">
-        <number>15</number>
+      <widget class="QLabel" name="installationLabel">
+       <property name="text">
+        <string>Starting Installation...</string>
        </property>
-       <item>
-        <widget class="QLabel" name="installationLabel">
-         <property name="text">
-          <string>Copying payload flies...</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="label_6">
-         <property name="font">
-          <font>
-           <pointsize>-1</pointsize>
-           <fontweight>ExtraLight</fontweight>
-          </font>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">color: rgb(100, 100, 100)</string>
-         </property>
-         <property name="text">
-          <string>Please do not close the setup wizard during installation.</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      </widget>
      </item>
     </layout>
    </widget>
   </widget>
   <widget class="QWizardPage" name="completePage">
    <property name="title">
-    <string>SoundSpliter is Ready!</string>
+    <string>SoundSplitter is Ready!</string>
    </property>
    <property name="subTitle">
     <string>Click Finish to exit the setup wizard.</string>
    </property>
-   <widget class="QLabel" name="label_10">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>60</y>
-      <width>461</width>
-      <height>61</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>VB-CABLE is required for SoundSplitter's virtual audio input functionality.</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="downloadPushButton">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>110</y>
-      <width>171</width>
-      <height>40</height>
-     </rect>
-    </property>
-    <property name="minimumSize">
-     <size>
-      <width>0</width>
-      <height>40</height>
-     </size>
-    </property>
-    <property name="layoutDirection">
-     <enum>Qt::LayoutDirection::RightToLeft</enum>
-    </property>
-    <property name="text">
-     <string>Download VB-CABLE  </string>
-    </property>
-   </widget>
-   <widget class="QCheckBox" name="homepageCheckBox">
-    <property name="geometry">
-     <rect>
-      <x>30</x>
-      <y>190</y>
-      <width>391</width>
-      <height>19</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Visit the SoundSplitter project homepage after setup.</string>
-    </property>
-    <property name="checked">
-     <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QWidget" name="layoutWidget">
+   <widget class="QWidget" name="completeWidget" native="true">
     <property name="geometry">
      <rect>
       <x>30</x>
       <y>40</y>
-      <width>251</width>
-      <height>27</height>
+      <width>521</width>
+      <height>241</height>
      </rect>
     </property>
-    <layout class="QHBoxLayout" name="horizontalLayout">
+    <layout class="QVBoxLayout" name="completeLayout">
      <item>
-      <widget class="QLabel" name="label_8">
-       <property name="styleSheet">
-        <string notr="true">font-size: 20px</string>
-       </property>
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <item>
+        <widget class="QLabel" name="label_8">
+         <property name="styleSheet">
+          <string notr="true">font-size: 20px</string>
+         </property>
+         <property name="text">
+          <string>VB-CABLE Driver</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="detectLabel">
+         <property name="styleSheet">
+          <string notr="true">color: rgb(255, 0, 0)</string>
+         </property>
+         <property name="text">
+          <string>Not detected</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_10">
        <property name="text">
-        <string>VB-CABLE Driver</string>
+        <string>VB-CABLE is required for SoundSplitter's virtual audio input functionality.</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="detectLabel">
-       <property name="styleSheet">
-        <string notr="true">color: rgb(255, 0, 0)</string>
+      <widget class="QPushButton" name="downloadPushButton">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>200</width>
+         <height>16777215</height>
+        </size>
        </property>
        <property name="text">
-        <string>Not detected</string>
+        <string>Download VB-CABLE  </string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QCheckBox" name="homepageCheckBox">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>100</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Visit the SoundSplitter project homepage after setup.</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

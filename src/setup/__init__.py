@@ -1,43 +1,305 @@
-from shutil import copytree
-from sys import modules
-from typing import override
+from sys import exit, modules
+from typing import ClassVar, NoReturn
 
-from PySide6.QtCore import QCoreApplication, QDir, QLockFile, QStandardPaths, Slot, QObject, QFileInfo, QProcessEnvironment
-from PySide6.QtWidgets import QApplication, QWizard
+from comtypes.client import CreateObject
+from comtypes.persist import IPersistFile
+from comtypes.shelllink import IShellLinkW, ShellLink
+from PySide6.QtCore import (
+    Q_ARG,
+    QDate,
+    QDir,
+    QDirIterator,
+    QFile,
+    QFileInfo,
+    QLockFile,
+    QMessageLogContext,
+    QMetaObject,
+    QObject,
+    QProcess,
+    QProcessEnvironment,
+    QSettings,
+    QStandardPaths,
+    Qt,
+    QThread,
+    QtMsgType,
+    Signal,
+    SignalInstance,
+    Slot,
+    qCritical,
+    qInfo,
+    qInstallMessageHandler,
+    qWarning,
+)
+from PySide6.QtGui import QDesktopServices
+from PySide6.QtMultimedia import QMediaDevices
+from PySide6.QtNetwork import QLocalSocket
+from PySide6.QtWidgets import QApplication, QMessageBox, QWizard
 
-from .resources import resources_rc
+from setup.__about__ import __author__, __version__
+from setup.resources import resources_rc
 
 modules["resources_rc"] = resources_rc
 
-from .ui import Ui_Wizard
+from setup.ui import Ui_Wizard
 
 
-class Setup:
-    tr: staticmethod[[str], str] = staticmethod(
-        lambda key: QCoreApplication.translate(Setup.__name__, key)
+class Setup(QObject):
+    APPLICATION_NAME: str = "SoundSplitter"
+    OLD_APPLICATION_NAMES: ClassVar[list[str]] = ["SoundSpliter"]
+    _start_menu = _desktop = _startup = False
+    _progress_bar = Signal(int)
+    _program_data = QDir(
+        path=QProcessEnvironment.systemEnvironment().value("ProgramData")
     )
+    _data_dir = QDir(path=_program_data.absolutePath() + "/" + APPLICATION_NAME)
+
     class _Install(QObject):
-        @override
-        def __init__(self, /, application_name: str, parent: QObject | None = None, *, objectName: str | None = None) -> None:
-            super().__init__(parent, objectName=objectName)
-            self._application_name: str= application_name
-        def __call__(self):
-            application_dir = QDir(QProcessEnvironment.systemEnvironment().value("ProgramFiles")+ "/"+self._application_name)
-            if not application_dir.removeRecursively():
-                raise OSError(
-                    self.tr(
-                        "Failed to remove the existing installation directory."
+        def __call__(self, progress_bar: SignalInstance) -> None:
+            try:
+                program_files = QDir(
+                    path=QProcessEnvironment.systemEnvironment().value("ProgramFiles")
+                )
+                app_dir = QDir(
+                    path=program_files.absoluteFilePath(Setup.APPLICATION_NAME)
+                )
+                executable: str = app_dir.filePath(Setup.APPLICATION_NAME + ".exe")
+                program_data: QDir = Setup._program_data
+                shortcut_dir = QDir(
+                    path=program_data.absolutePath()
+                    + r"\Microsoft\Windows\Start Menu\Programs"
+                )
+                desktop_dir = QDir(
+                    path=QProcessEnvironment.systemEnvironment().value("Public")
+                    + r"\Desktop"
+                )
+                data_dir: QDir = Setup._data_dir
+                app_data = QDir(
+                    path=QStandardPaths.writableLocation(
+                        QStandardPaths.StandardLocation.GenericConfigLocation
                     )
                 )
-            if not application_dir.mkpath("."):
-                raise OSError(
-                    self.tr(
-                        "Failed to create the installation directory."
-                    )
+                uninstall_reg = QSettings(
+                    QSettings.Scope.SystemScope,
+                    r"Microsoft\Windows\CurrentVersion\Uninstall",
                 )
-            
-            
-            copytree(src=QFileInfo(__file__).dir().absolutePath(), dst = )
+                startup_reg = QSettings(
+                    QSettings.Scope.UserScope,
+                    r"Microsoft\Windows\CurrentVersion\Run",
+                )
+                locker = QLockFile(data_dir.absoluteFilePath(".lock"))
+                locker.setStaleLockTime(0)
+                if not locker.tryLock(0):
+                    qInfo(self.tr("Closing running Instance..."))
+                    socket = QLocalSocket()
+                    socket.connectToServer(Setup.APPLICATION_NAME)
+                    if not socket.waitForConnected(msecs=10000):
+                        raise RuntimeError(
+                            self.tr(
+                                "Failed to close the running instance. Check the system tray."
+                            )
+                        )
+                    socket.write(b"EXIT")
+                    if not socket.waitForBytesWritten(10000) or not locker.tryLock(
+                        10000
+                    ):
+                        raise RuntimeError(
+                            self.tr(
+                                "Failed to close the running instance. Check the system tray."
+                            )
+                        )
+                qInfo(self.tr("Deleting existing installation directory..."))
+                if not app_dir.removeRecursively():
+                    raise OSError(
+                        self.tr("Failed to remove the existing installation directory.")
+                    )
+                if not app_dir.mkpath("."):
+                    raise OSError(
+                        self.tr("Failed to create the installation directory.")
+                    )
+                progress_bar.emit(10)
+                qInfo(self.tr("Copying files to the installation directory..."))
+                self._copy_dir(
+                    QFileInfo(__file__).dir().absolutePath(),
+                    app_dir.absolutePath(),
+                )
+                if not data_dir.exists() and not data_dir.mkpath("."):
+                    raise OSError(self.tr("Failed to create the data directory."))
+                progress_bar.emit(50)
+                for old_name in Setup.OLD_APPLICATION_NAMES:
+                    old_dir = QDir(path=program_files.absoluteFilePath(old_name))
+                    if QFile.exists(desktop_dir.filePath(old_name + ".lnk")):
+                        qInfo(self.tr("Deleting old Desktop shortcut: ") + old_name)
+                        if not QFile.remove(desktop_dir.filePath(old_name + ".lnk")):
+                            qWarning(
+                                self.tr("Failed to delete the old Desktop shortcut: ")
+                                + old_name
+                            )
+                    if QFile.exists(shortcut_dir.filePath(old_name + ".lnk")):
+                        qInfo(self.tr("Deleting old Start Menu shortcut: ") + old_name)
+                        if not QFile.remove(shortcut_dir.filePath(old_name + ".lnk")):
+                            qWarning(
+                                self.tr(
+                                    "Failed to delete the old Start Menu shortcut: "
+                                )
+                                + old_name
+                            )
+                    if old_dir.exists():
+                        qInfo(
+                            self.tr("Deleting old installation directory: ") + old_name
+                        )
+                        if not old_dir.removeRecursively():
+                            qWarning(
+                                self.tr(
+                                    "Failed to remove the old installation directory: "
+                                )
+                                + old_name
+                            )
+                    for old_data in (
+                        (QDir(path=app_data.absolutePath() + "/" + old_name)),
+                        QDir(path=program_data.absolutePath() + "/" + old_name),
+                    ):
+                        if old_data.exists():
+                            qInfo(
+                                self.tr(
+                                    "Migrating data from old installation directory: "
+                                )
+                                + old_name
+                            )
+                            try:
+                                self._copy_dir(
+                                    old_data.absolutePath(), data_dir.absolutePath()
+                                )
+                                if not old_data.removeRecursively():
+                                    qWarning(
+                                        self.tr(
+                                            "Failed to remove the old data directory: "
+                                        )
+                                        + old_name
+                                    )
+                            except OSError:
+                                qWarning(
+                                    self.tr(
+                                        "Failed to migrate data from old installation directory: "
+                                    )
+                                    + old_name
+                                )
+                    if old_name in startup_reg.childKeys():
+                        qInfo(
+                            self.tr("Deleting old startup registry entry: ") + old_name
+                        )
+                        startup_reg.remove(old_name)
+                    if old_name in uninstall_reg.childGroups():
+                        qInfo(self.tr("Deleting old registry key: ") + old_name)
+                        uninstall_reg.remove(old_name)
+                process = QProcess()
+                process.start(
+                    "icacls",
+                    arguments=[
+                        data_dir.absolutePath(),
+                        "/grant",
+                        "*S-1-5-32-545:(OI)(CI)M",
+                        "/C",
+                        "/Q",
+                    ],
+                )
+                if not process.waitForFinished() or process.exitCode():
+                    raise OSError(
+                        self.tr("Failed to set permissions for the data directory.")
+                    )
+                uninstall_reg.sync()
+                progress_bar.emit(70)
+                qInfo(self.tr("Creating registry entries for uninstallation..."))
+                settings = QSettings(
+                    QSettings.Scope.SystemScope,
+                    r"Microsoft\Windows\CurrentVersion\Uninstall",
+                    application=Setup.APPLICATION_NAME,
+                )
+                settings.setValue("DisplayName", Setup.APPLICATION_NAME)
+                settings.setValue("DisplayVersion", __version__)
+                settings.setValue("Publisher", __author__)
+                settings.setValue("InstallLocation", app_dir.absolutePath())
+                settings.setValue(
+                    "InstallDate", QDate.currentDate().toString("yyyyMMdd")
+                )
+                settings.setValue("DisplayIcon", executable)
+                settings.setValue("EstimatedSize", self._directory_size(app_dir))
+                settings.setValue("VersionMajor", int(__version__.split(sep=".")[0]))
+                settings.setValue("VersionMinor", int(__version__.split(sep=".")[1]))
+                settings.setValue(
+                    "UninstallString",
+                    '"' + app_dir.filePath("uninstall.exe") + '"',
+                )
+                settings.setValue("NoModify", 1)
+                settings.setValue("NoRepair", 1)
+                settings.sync()
+                progress_bar.emit(80)
+                if Setup._start_menu:
+                    qInfo(self.tr("Creating Start Menu shortcut..."))
+                    link: IShellLinkW = CreateObject(
+                        progid=ShellLink, interface=IShellLinkW
+                    )
+                    link.SetPath(pszFile=executable)
+                    link.SetIconLocation(pszIconPath=executable, iIcon=0)
+                    link.QueryInterface(interface=IPersistFile).Save(
+                        pszFileName=shortcut_dir.filePath(
+                            Setup.APPLICATION_NAME + ".lnk"
+                        ),
+                        fRemember=True,
+                    )
+                progress_bar.emit(90)
+                if Setup._desktop:
+                    qInfo(self.tr("Creating Desktop shortcut..."))
+                    link: IShellLinkW = CreateObject(
+                        progid=ShellLink, interface=IShellLinkW
+                    )
+                    link.SetPath(pszFile=executable)
+                    link.SetIconLocation(pszIconPath=executable, iIcon=0)
+                    link.QueryInterface(interface=IPersistFile).Save(
+                        pszFileName=desktop_dir.filePath(
+                            Setup.APPLICATION_NAME + ".lnk"
+                        ),
+                        fRemember=True,
+                    )
+                if Setup._startup:
+                    startup_reg.setValue(Setup.APPLICATION_NAME, '"' + executable + '"')
+                else:
+                    startup_reg.remove(Setup.APPLICATION_NAME)
+                startup_reg.sync()
+                progress_bar.emit(100)
+            except BaseException as e:
+                qCritical(self.tr("Installation failed: ") + str(object=e))
+                raise
+            finally:
+                self.thread().quit()
+
+        def _copy_dir(self, src: str, dst: str, /) -> None:
+            for info in QDir(path=src).entryInfoList(
+                filters=QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot
+            ):
+                target: str = QDir(path=dst).filePath(info.fileName())
+                if info.isDir():
+                    if not QDir().mkpath(target):
+                        raise OSError("Create directory failed: " + target)
+                    self._copy_dir(info.absoluteFilePath(), target)
+                elif info.fileName() != "setup.exe":
+                    qInfo(self.tr("Copying file: ") + info.absoluteFilePath())
+                    if not QFile.copy(info.absoluteFilePath(), target):
+                        raise OSError(
+                            self.tr("Copy failed: ") + info.absoluteFilePath()
+                        )
+
+        @staticmethod
+        def _directory_size(directory: QDir, /) -> int:
+            total_size = 0
+            iterator = QDirIterator(
+                directory.absolutePath(),
+                QDir.Filter.Files | QDir.Filter.Hidden | QDir.Filter.System,
+                flags=QDirIterator.IteratorFlag.Subdirectories,
+            )
+            while iterator.hasNext():
+                iterator.next()
+                total_size += iterator.fileInfo().size()
+            return total_size // 1024
 
     def __init__(self) -> None:
         self._app = QApplication()
@@ -45,49 +307,77 @@ class Setup:
         self._ui = Ui_Wizard()
         self._ui.setupUi(Wizard=self._wizard)
         self._app.setApplicationName(self._wizard.windowTitle())
-        if not QDir().mkpath(
-            QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.AppLocalDataLocation
-            )
-        ):
-            raise OSError(
-                self.tr(
-                    "Unable to create the required folder in the local data directory. "
-                    "Please check permissions or available disk space."
-                )
-            )
-        self._lock = QLockFile(
-            QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.AppLocalDataLocation
-            )
-            + "/.setup.lock"
-        )
-        self._lock.setStaleLockTime(0)
-        if not self._lock.tryLock(0):
-            if self._lock.error() == QLockFile.LockError.LockFailedError:
-                raise RuntimeError(
+        qInstallMessageHandler(self._message_handler)
+        try:
+            if not QDir().mkpath(self._data_dir.absolutePath()):
+                raise OSError(
                     self.tr(
-                        "Another instance is already running. Check the system tray."
+                        "Unable to create the required folder in the local data directory. "
+                        "Please check permissions or available disk space."
                     )
                 )
-            else:
-                raise RuntimeError(
-                    self.tr(
-                        "Could not create the single-instance lock. Check the directory permissions."
+            self._lock = QLockFile(self._data_dir.absoluteFilePath("setup.lock"))
+            self._lock.setStaleLockTime(0)
+            if not self._lock.tryLock(0):
+                if self._lock.error() == QLockFile.LockError.LockFailedError:
+                    raise RuntimeError(
+                        self.tr(
+                            "Another instance is already running. Check the system tray."
+                        )
                     )
+                else:
+                    raise RuntimeError(
+                        self.tr(
+                            "Could not create the single-instance lock. Check the directory permissions."
+                        )
+                    )
+            license = QFile(":/text/LICENSE")
+            if not license.open(QFile.OpenModeFlag.ReadOnly):
+                raise RuntimeError(self.tr("Failed to open the license file."))
+            self._ui.licenseTextBrowser.append(bytes(license.readAll().data()).decode())
+            self._ui.licensePage.setButtonText(
+                self._wizard.WizardButton.NextButton, self.tr("Accept(&A)")
+            )
+            self._ui.licenseCheckBox.toggled.connect(
+                self._on_license_check_box_state_changed
+            )
+            self._ui.startMenuCheckBox.toggled.connect(
+                lambda checked: setattr(Setup, "_start_menu", checked)
+            )
+            self._ui.desktopCheckBox.toggled.connect(
+                lambda checked: setattr(Setup, "_desktop", checked)
+            )
+            self._ui.startupCheckBox.toggled.connect(
+                lambda checked: setattr(Setup, "_startup", checked)
+            )
+            self._ui.InstallationTextBrowser.hide()
+            self._ui.toolButton.toggled.connect(
+                lambda checked: (
+                    self._ui.InstallationTextBrowser.show()
+                    if checked
+                    else self._ui.InstallationTextBrowser.hide()
                 )
-        self._ui.licensePage.setButtonText(
-            self._wizard.WizardButton.NextButton, self.tr("Accept(&A)")
-        )
-        self._ui.licenseCheckBox.toggled.connect(
-            self._on_license_check_box_state_changed
-        )
-        self._ui.startMenuCheckBox.toggled.connect(
-            lambda checked: setattr(self, "_start_menu", checked)
-        )
-        self._ui.desktopCheckBox.toggled.connect(
-            lambda checked: setattr(self, "_desktop", checked)
-        )
+            )
+            self._thread = QThread(parent=self._wizard)
+            self._install = self._Install()
+            self._install.moveToThread(self._thread)
+            self._thread.started.connect(
+                lambda: self._install(self._progress_bar),
+                type=Qt.ConnectionType.QueuedConnection,
+            )
+            self._progress_bar.connect(self._on_progress_bar)
+            self._thread.finished.connect(self._on_thread_finished)
+            self._wizard.currentIdChanged.connect(self._on_current_id_changed)
+            self._ui.downloadPushButton.clicked.connect(
+                lambda: QDesktopServices.openUrl("https://vb-audio.com/Cable/")
+            )
+            self._ui.homepageCheckBox.toggled.connect(
+                self._on_homepage_check_box_toggled
+            )
+            self._on_homepage_check_box_toggled(self._ui.homepageCheckBox.isChecked())
+        except BaseException as e:
+            self._on_critical(str(object=e))
+            raise
 
     @Slot(int)
     def _on_current_id_changed(self, page_id: int) -> None:
@@ -101,6 +391,14 @@ class Setup:
             self._wizard.button(self._wizard.WizardButton.CancelButton).setEnabled(
                 False
             )
+            self._thread.start()
+        elif page_id == self._wizard.pageIds()[4]:
+            for device in QMediaDevices.audioOutputs():
+                if "CABLE Input" in device.description():
+                    self._ui.detectLabel.setText("Detected")
+                    self._ui.detectLabel.setStyleSheet("color: rgb(40, 167, 69)")
+                    self._ui.downloadPushButton.setEnabled(False)
+                    break
 
     @Slot(bool)
     def _on_license_check_box_state_changed(self, checked: bool) -> None:
@@ -108,3 +406,74 @@ class Setup:
             self._wizard.button(self._wizard.WizardButton.NextButton).setEnabled(
                 checked
             )
+
+    @Slot(int)
+    def _on_progress_bar(self, value: int) -> None:
+        self._ui.progressBar.setValue(value)
+
+    @Slot()
+    def _on_thread_finished(self) -> None:
+        self._thread.deleteLater()
+        self._wizard.button(self._wizard.WizardButton.BackButton).setEnabled(True)
+        self._wizard.button(self._wizard.WizardButton.NextButton).setEnabled(True)
+        self._wizard.button(self._wizard.WizardButton.CancelButton).setEnabled(True)
+
+    @Slot(bool)
+    def _on_homepage_check_box_toggled(self, checked: bool) -> None:
+        if checked:
+            self._homepage_conn = self._wizard.button(
+                self._wizard.WizardButton.FinishButton
+            ).clicked.connect(
+                lambda: QDesktopServices.openUrl(
+                    "https://github.com/handsome-Druid/SoundSplitter"
+                )
+            )
+        elif hasattr(self, "_homepage_conn"):
+            self._wizard.button(
+                self._wizard.WizardButton.FinishButton
+            ).clicked.disconnect(self._homepage_conn)
+            del self._homepage_conn
+
+    @Slot(str)
+    def _on_critical(self, msg: str) -> None:
+        self._ui.completeWidget.hide()
+        self._ui.InstallationTextBrowser.append(self.tr("Critical: ") + msg)
+        self._ui.completePage.setTitle("Sound Splitter installation Failed")
+        QMessageBox.critical(
+            self._wizard if hasattr(self, "_wizard") else None,
+            self._app.applicationName(),
+            self.tr("Critical: ") + msg,
+        )
+
+    def _message_handler(
+        self, msg_type: QtMsgType, context: QMessageLogContext, msg: str
+    ) -> None:
+        if msg_type == QtMsgType.QtWarningMsg:
+            QMetaObject.invokeMethod(
+                self._ui.InstallationTextBrowser,
+                "append",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(str, "Warning: " + msg),
+            )
+        elif msg_type == QtMsgType.QtCriticalMsg:
+            QMetaObject.invokeMethod(
+                self,
+                "_on_critical",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(str, msg),
+            )
+        else:
+            QMetaObject.invokeMethod(
+                self._ui.InstallationTextBrowser,
+                "append",
+                Qt.ConnectionType.QueuedConnection,
+                Q_ARG(str, msg),
+            )
+
+    def __call__(self) -> NoReturn:
+        self._wizard.show()
+        exit(self._app.exec())
+
+
+def main() -> NoReturn:
+    Setup()()

@@ -1,5 +1,8 @@
 <RCC>
-  <qresource prefix="image">
-    <file alias="icon">SS_headphones_solid_cute.svg</file>
-  </qresource>
+    <qresource prefix="image">
+        <file alias="icon">SS_headphones_solid_cute.svg</file>
+    </qresource>
+    <qresource prefix="/text">
+        <file>LICENSE</file>
+    </qresource>
 </RCC>
