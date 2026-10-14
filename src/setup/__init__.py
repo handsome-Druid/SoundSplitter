@@ -1,13 +1,11 @@
 from collections.abc import Callable, Collection
 from ctypes import windll
 from itertools import chain
+from os import link
 from subprocess import list2cmdline
 from sys import argv, executable, exit, modules
 from typing import ClassVar, NoReturn
 
-from comtypes.client import CreateObject
-from comtypes.persist import IPersistFile
-from comtypes.shelllink import IShellLinkW, ShellLink
 from PySide6.QtCore import (
     Q_ARG,
     QDate,
@@ -125,6 +123,7 @@ class Setup(QObject):
                                             "Failed to close the running instance. Please close it manually and try again."
                                         )
                                     )
+                            locker.unlock()
                             if old_data != data_dir:
                                 qInfo(
                                     self.tr(
@@ -249,36 +248,26 @@ class Setup(QObject):
                 self.progress_bar.emit(80)
                 if Setup._start_menu:
                     qInfo(self.tr("Creating Start Menu shortcut..."))
-                    link: IShellLinkW = CreateObject(
-                        progid=ShellLink, interface=IShellLinkW
-                    )
-                    link.SetPath(pszFile=executable)
-                    link.SetIconLocation(pszIconPath=executable, iIcon=0)
-                    link.QueryInterface(interface=IPersistFile).Save(
-                        pszFileName=shortcut_dir.filePath(
-                            Setup.APPLICATION_NAME + ".lnk"
-                        ),
-                        fRemember=True,
-                    )
+                    if not QFile.link(
+                        executable,
+                        shortcut_dir.filePath(Setup.APPLICATION_NAME + ".lnk"),
+                    ):
+                        qWarning(self.tr("Failed to create the Start Menu shortcut."))
                 self.progress_bar.emit(90)
                 if Setup._desktop:
                     qInfo(self.tr("Creating Desktop shortcut..."))
-                    link: IShellLinkW = CreateObject(
-                        progid=ShellLink, interface=IShellLinkW
-                    )
-                    link.SetPath(pszFile=executable)
-                    link.SetIconLocation(pszIconPath=executable, iIcon=0)
-                    link.QueryInterface(interface=IPersistFile).Save(
-                        pszFileName=desktop_dir.filePath(
-                            Setup.APPLICATION_NAME + ".lnk"
-                        ),
-                        fRemember=True,
-                    )
+                    if not QFile.link(
+                        executable,
+                        desktop_dir.filePath(Setup.APPLICATION_NAME + ".lnk"),
+                    ):
+                        qWarning(self.tr("Failed to create the Desktop shortcut."))
                 if Setup._startup:
                     startup_reg.setValue(Setup.APPLICATION_NAME, '"' + executable + '"')
                 else:
                     startup_reg.remove(Setup.APPLICATION_NAME)
                 startup_reg.sync()
+            except SystemExit:
+                raise
             except BaseException as e:
                 qCritical(self.tr("Installation failed: ") + str(object=e))
                 raise
@@ -310,22 +299,16 @@ class Setup(QObject):
                             self.tr("Copy failed: ")
                             + QDir(path=dst).filePath("SoundSplitter.exe")
                         )
-                    qInfo(
-                        self.tr("Copying file: ")
-                        + QDir(path=dst).filePath("uninstall.exe")
+                    link(
+                        src=QDir(path=dst).filePath("SoundSplitter.exe"),
+                        dst=QDir(path=dst).filePath("uninstall.exe"),
                     )
-                    if not QFile.copy(
-                        info.absoluteFilePath(),
-                        QDir(path=dst).filePath("uninstall.exe"),
-                    ):
-                        raise OSError(
-                            self.tr("Copy failed: ")
-                            + QDir(path=dst).filePath("uninstall.exe")
-                        )
+                elif info.fileName().endswith(".lock"):
+                    continue
+                elif QFile(target).exists():
+                    qWarning(target + " exists. Skipping copy.")
+                    continue
                 else:
-                    if QFile(target).exists():
-                        qWarning(target + " exists. Skipping copy.")
-                        continue
                     qInfo(self.tr("Copying file: ") + info.absoluteFilePath())
                     if not QFile.copy(info.absoluteFilePath(), target):
                         raise OSError(
@@ -356,6 +339,12 @@ class Setup(QObject):
         self._app.setApplicationName(self._wizard.windowTitle())
         qInstallMessageHandler(self._message_handler)
         try:
+            if not windll.shell32.IsUserAnAdmin():
+                if windll.shell32.ShellExecuteW(
+                    None, "runas", argv[0], list2cmdline(seq=argv[1:]), None, 1
+                ) <= 32:
+                    raise RuntimeError("Please run as administrator.")
+                exit(0)
             if not QDir().mkpath(self._data_dir.absolutePath()):
                 raise OSError(
                     self.tr(
@@ -481,6 +470,8 @@ class Setup(QObject):
                 self._on_homepage_check_box_toggled
             )
             self._on_homepage_check_box_toggled(self._ui.homepageCheckBox.isChecked())
+        except SystemExit:
+            raise
         except BaseException as e:
             self._on_critical(str(object=e))
             raise
@@ -609,10 +600,5 @@ class Setup(QObject):
                     self._app.installTranslator(translator)
 
 
-def main() -> None:
-    if not windll.shell32.IsUserAnAdmin():
-        windll.shell32.ShellExecuteW(
-            None, "runas", executable, list2cmdline(seq=argv), None, 1
-        )
-        return
+def main() -> NoReturn:
     Setup()()
