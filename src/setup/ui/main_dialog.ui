@@ -52,7 +52,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>40</y>
+      <y>70</y>
       <width>201</width>
       <height>201</height>
      </rect>
@@ -71,7 +71,7 @@
     <property name="geometry">
      <rect>
       <x>230</x>
-      <y>40</y>
+      <y>70</y>
       <width>301</width>
       <height>101</height>
      </rect>
@@ -94,7 +94,7 @@
     <property name="geometry">
      <rect>
       <x>250</x>
-      <y>80</y>
+      <y>110</y>
       <width>331</width>
       <height>161</height>
      </rect>
@@ -112,6 +112,31 @@
     <property name="text">
      <string>Splitter</string>
     </property>
+   </widget>
+   <widget class="QWidget" name="layoutWidget">
+    <property name="geometry">
+     <rect>
+      <x>420</x>
+      <y>0</y>
+      <width>171</width>
+      <height>29</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="languageLabel">
+       <property name="text">
+        <string>language:</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="languageComboBox"/>
+     </item>
+    </layout>
    </widget>
   </widget>
   <widget class="QWizardPage" name="licensePage">
@@ -315,11 +340,11 @@
    <property name="subTitle">
     <string>Click Finish to exit the setup wizard.</string>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>20</y>
+      <y>10</y>
       <width>541</width>
       <height>321</height>
      </rect>
@@ -327,7 +352,19 @@
     <layout class="QVBoxLayout" name="verticalLayout_6">
      <item>
       <widget class="QWidget" name="completeWidget" native="true">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>250</height>
+        </size>
+       </property>
        <layout class="QVBoxLayout" name="completeLayout">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout">
           <item>
@@ -355,7 +392,7 @@
         <item>
          <widget class="QLabel" name="label_10">
           <property name="text">
-           <string>VB-CABLE is required for SoundSplitter's virtual audio input functionality.</string>
+           <string>VB-CABLE is recommended for SoundSplitter's virtual audio input functionality.</string>
           </property>
          </widget>
         </item>
@@ -378,15 +415,28 @@
           </property>
          </widget>
         </item>
+        <item alignment="Qt::AlignmentFlag::AlignBottom">
+         <widget class="QCheckBox" name="openCheckBox">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Open SoundSplitter</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
      </item>
-     <item>
+     <item alignment="Qt::AlignmentFlag::AlignTop">
       <widget class="QCheckBox" name="homepageCheckBox">
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>130</height>
+         <height>0</height>
         </size>
        </property>
        <property name="text">

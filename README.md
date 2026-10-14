@@ -66,12 +66,16 @@ uv run pyside6-rcc src\SoundSplitter\integration\app\resources\resources.qrc -o 
 uv run pyside6-uic src\SoundSplitter\integration\app\ui\main_window.ui -o src\SoundSplitter\integration\app\ui\main_window_ui.py
 uv run pyside6-rcc src\setup\resources\resources.qrc -o src\setup\resources\resources_rc.py
 uv run pyside6-uic src\setup\ui\main_dialog.ui -o src\setup\ui\main_dialog_ui.py
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\SoundSplitter -ts translation\SoundSplitter\zh_CN.ts 
+uv run pyside6-lrelease translation\SoundSplitter\zh_CN.ts -qm translation\SoundSplitter\zh_CN.qm
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\setup -ts translation\setup\zh_CN.ts
+uv run pyside6-lrelease translation\setup\zh_CN.ts -qm translation\setup\zh_CN.qm
 ```
 
 生成的 UI 和资源模块被 Git 忽略，首次构建时也必须生成；仅生成主程序资源不足以启动安装程序。修改 `.ui`、`.qrc` 或其引用的资源文件后，需要重新执行对应命令。使用 Nuitka 4.3 打包单文件安装程序：
 
 ```powershell
-uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml
+uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translation=translation --noinclude-data-files=**/*.ts
 ```
 
 生成的单文件安装程序位于 `build\setup.exe`。`--onefile-no-dll` 保留可执行的内部 payload；安装程序从 `__compiled__.python_runtime_dir` 复制完整 payload，再复制改名内部 EXE 实现各个入口。

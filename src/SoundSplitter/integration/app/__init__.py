@@ -199,7 +199,7 @@ class APP:
                         changeEvent_(event)
 
             self._window.changeEvent = changeEvent
-            closeEvent_: Callable[[QCloseEvent], None] = self._window.closeEvent
+            self._closeEvent: Callable[[QCloseEvent], None] = self._window.closeEvent
 
             def closeEvent(event: QCloseEvent) -> None:
                 if (
@@ -213,7 +213,7 @@ class APP:
                     )
                     == self._message_box.StandardButton.Yes
                 ):
-                    closeEvent_(event)
+                    self._closeEvent(event)
                 else:
                     event.ignore()
 
@@ -243,12 +243,14 @@ class APP:
                 self._ui.startupCheckBox.hide()
             show_popup: Callable[[], None] = self._ui.languageComboBox.showPopup
             translation_dir = QDir(
-                path=self._config.containing_dir.filePath("translation")
+                path=self._config.containing_dir.filePath(
+                    "translation/" + self._app.applicationName()
+                )
             )
             qt_path: str = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
 
             def showPopup() -> None:
-                current = self._ui.languageComboBox.currentText()
+                current: str = self._ui.languageComboBox.currentText()
                 self._ui.languageComboBox.clear()
                 self._ui.languageComboBox.addItem("en_US")
                 for file in translation_dir.entryList(
@@ -1092,11 +1094,16 @@ class APP:
     @Slot()
     def _on_new_connection(self) -> None:
         socket: QLocalSocket = self._server.nextPendingConnection()
-        socket.readyRead.connect(
-            lambda socket=socket: (
-                self._show_action.trigger()
-                if socket.readAll().data() == b"SHOW"
-                else None,
-                socket.disconnectFromServer(),
-            )
-        )
+
+        @Slot(QLocalSocket)
+        def on_ready_read(socket: QLocalSocket) -> None:
+            while socket.bytesAvailable() >= 4:
+                match socket.read(4).data():
+                    case b"SHOW":
+                        self._show_action.trigger()
+                    case b"EXIT":
+                        self._closeEvent(QCloseEvent())
+                    case _:
+                        pass
+
+        socket.readyRead.connect(on_ready_read)

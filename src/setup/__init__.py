@@ -1,3 +1,4 @@
+from collections.abc import Callable, Collection
 from ctypes import windll
 from itertools import chain
 from subprocess import list2cmdline
@@ -12,7 +13,10 @@ from PySide6.QtCore import (
     QDate,
     QDir,
     QDirIterator,
+    QEvent,
     QFile,
+    QLibraryInfo,
+    QLocale,
     QLockFile,
     QMessageLogContext,
     QMetaObject,
@@ -24,6 +28,7 @@ from PySide6.QtCore import (
     Qt,
     QThread,
     QtMsgType,
+    QTranslator,
     Signal,
     Slot,
     qCritical,
@@ -52,6 +57,11 @@ class Setup(QObject):
         path=QProcessEnvironment.systemEnvironment().value("ProgramData")
     )
     _data_dir = QDir(path=_program_data.absoluteFilePath(APPLICATION_NAME))
+    _program_files = QDir(
+        path=QProcessEnvironment.systemEnvironment().value("ProgramFiles")
+    )
+    _app_dir = QDir(path=_program_files.absoluteFilePath(APPLICATION_NAME))
+    _executable: str = _app_dir.filePath(APPLICATION_NAME + ".exe")
 
     class _Install(QObject):
         progress_bar = Signal(int)
@@ -59,13 +69,9 @@ class Setup(QObject):
         @Slot()
         def __call__(self) -> None:
             try:
-                program_files = QDir(
-                    path=QProcessEnvironment.systemEnvironment().value("ProgramFiles")
-                )
-                app_dir = QDir(
-                    path=program_files.absoluteFilePath(Setup.APPLICATION_NAME)
-                )
-                executable: str = app_dir.filePath(Setup.APPLICATION_NAME + ".exe")
+                program_files: QDir = Setup._program_files
+                app_dir: QDir = Setup._app_dir
+                executable: str = Setup._executable
                 program_data: QDir = Setup._program_data
                 shortcut_dir = QDir(
                     path=program_data.absolutePath()
@@ -286,6 +292,8 @@ class Setup(QObject):
             ):
                 target: str = QDir(path=dst).filePath(info.fileName())
                 if info.isDir():
+                    if "translation/setup" in info.absoluteFilePath():
+                        continue
                     if not QDir().mkpath(target):
                         raise OSError("Create directory failed: " + target)
                     self._copy_dir(info.absoluteFilePath(), target)
@@ -370,6 +378,65 @@ class Setup(QObject):
                             "Could not create the single-instance lock. Check the directory permissions."
                         )
                     )
+            changeEvent_: Callable[[QEvent], None] = self._wizard.changeEvent
+
+            def changeEvent(event: QEvent) -> None:
+                match event.type():
+                    case QEvent.Type.LanguageChange:
+                        self._ui.retranslateUi(Wizard=self._wizard)
+                        changeEvent_(event)
+                    case _:
+                        changeEvent_(event)
+
+            self._wizard.changeEvent = changeEvent
+            translation_dir = QDir(
+                path=globals()["__compiled__"].python_runtime_dir + "/translation/setup"
+            )
+            qt_path: str = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+            show_popup: Callable[[], None] = self._ui.languageComboBox.showPopup
+
+            def showPopup() -> None:
+                current: str = self._ui.languageComboBox.currentText()
+                self._ui.languageComboBox.clear()
+                self._ui.languageComboBox.addItem("en_US")
+                for file in translation_dir.entryList(
+                    ["*.qm"], filters=QDir.Filter.Files
+                ):
+                    translator = QTranslator()
+                    if not translator.load(translation_dir.filePath(file)):
+                        continue
+                    locale: QLocale | None = None
+                    locale_ = QLocale(translator.language())
+                    if locale_.language() != QLocale.Language.C:
+                        locale = locale_
+                    else:
+                        locale_ = QLocale(file.removesuffix(".qm").replace("-", "_"))
+                        if locale_.language() != QLocale.Language.C:
+                            locale = locale_
+                    qt_translator = None
+                    if locale is not None:
+                        qt_translator = QTranslator()
+                        if not qt_translator.load(
+                            locale, "qtbase", "_", directory=qt_path
+                        ):
+                            qt_translator = None
+                    self._ui.languageComboBox.addItem(
+                        locale.name() if locale is not None else file,
+                        userData=(qt_translator, translator),
+                    )
+                index: int = self._ui.languageComboBox.findText(current)
+                if index >= 0:
+                    self._ui.languageComboBox.setCurrentIndex(index)
+                show_popup()
+
+            self._ui.languageComboBox.showPopup = showPopup
+            self._ui.languageComboBox.addItem("en_US")
+            self._ui.languageComboBox.setCurrentIndex(
+                self._ui.languageComboBox.count() - 1
+            )
+            self._ui.languageComboBox.activated.connect(
+                self._on_language_combo_box_activated
+            )
             license = QFile(":/text/LICENSE")
             if not license.open(QFile.OpenModeFlag.ReadOnly):
                 raise RuntimeError(self.tr("Failed to open the license file."))
@@ -472,6 +539,18 @@ class Setup(QObject):
             ).clicked.disconnect(self._homepage_conn)
             del self._homepage_conn
 
+    @Slot(bool)
+    def _on_open_check_box_toggled(self, checked: bool, /) -> None:
+        if checked:
+            self._open_conn: QMetaObject.Connection = self._wizard.button(
+                self._wizard.WizardButton.FinishButton
+            ).clicked.connect(lambda: QProcess().startDetached(self._executable))
+        elif hasattr(self, "_open_conn"):
+            self._wizard.button(
+                self._wizard.WizardButton.FinishButton
+            ).clicked.disconnect(self._open_conn)
+            del self._open_conn
+
     @Slot(str)
     def _on_critical(self, msg: str, /) -> None:
         self._ui.completeWidget.hide()
@@ -511,6 +590,23 @@ class Setup(QObject):
     def __call__(self) -> NoReturn:
         self._wizard.show()
         exit(self._app.exec())
+
+    @Slot()
+    def _on_language_combo_box_activated(self) -> None:
+        translators: Collection[QTranslator | None] | None = getattr(
+            self, "_translators", None
+        )
+        if translators is not None:
+            for translator in translators:
+                if translator is not None:
+                    self._app.removeTranslator(translator)
+        self._translators: Collection[QTranslator | None] | None = (
+            self._ui.languageComboBox.currentData(Qt.ItemDataRole.UserRole)
+        )
+        if self._translators is not None:
+            for translator in self._translators:
+                if translator is not None:
+                    self._app.installTranslator(translator)
 
 
 def main() -> None:
