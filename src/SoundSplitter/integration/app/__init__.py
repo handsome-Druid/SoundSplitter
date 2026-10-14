@@ -244,7 +244,7 @@ class APP:
             show_popup: Callable[[], None] = self._ui.languageComboBox.showPopup
             translation_dir = QDir(
                 path=self._config.containing_dir.filePath(
-                    "translation/" + self._app.applicationName()
+                    "translations/" + self._app.applicationName()
                 )
             )
             qt_path: str = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)

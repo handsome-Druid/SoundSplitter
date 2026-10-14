@@ -392,7 +392,7 @@ class Setup(QObject):
 
             self._wizard.changeEvent = changeEvent
             translation_dir = QDir(
-                path=globals()["__compiled__"].python_runtime_dir + "/translation/setup"
+                path=globals()["__compiled__"].python_runtime_dir + "/translations/setup"
             )
             qt_path: str = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
             show_popup: Callable[[], None] = self._ui.languageComboBox.showPopup
