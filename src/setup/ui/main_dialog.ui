@@ -315,64 +315,70 @@
    <property name="subTitle">
     <string>Click Finish to exit the setup wizard.</string>
    </property>
-   <widget class="QWidget" name="completeWidget" native="true">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>40</y>
-      <width>521</width>
-      <height>241</height>
+      <x>20</x>
+      <y>20</y>
+      <width>541</width>
+      <height>321</height>
      </rect>
     </property>
-    <layout class="QVBoxLayout" name="completeLayout">
+    <layout class="QVBoxLayout" name="verticalLayout_6">
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <item>
-        <widget class="QLabel" name="label_8">
-         <property name="styleSheet">
-          <string notr="true">font-size: 20px</string>
-         </property>
-         <property name="text">
-          <string>VB-CABLE Driver</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLabel" name="detectLabel">
-         <property name="styleSheet">
-          <string notr="true">color: rgb(255, 0, 0)</string>
-         </property>
-         <property name="text">
-          <string>Not detected</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <widget class="QLabel" name="label_10">
-       <property name="text">
-        <string>VB-CABLE is required for SoundSplitter's virtual audio input functionality.</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="downloadPushButton">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>40</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>Download VB-CABLE  </string>
-       </property>
+      <widget class="QWidget" name="completeWidget" native="true">
+       <layout class="QVBoxLayout" name="completeLayout">
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QLabel" name="label_8">
+            <property name="styleSheet">
+             <string notr="true">font-size: 20px</string>
+            </property>
+            <property name="text">
+             <string>VB-CABLE Driver</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="detectLabel">
+            <property name="styleSheet">
+             <string notr="true">color: rgb(255, 0, 0)</string>
+            </property>
+            <property name="text">
+             <string>Not detected</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_10">
+          <property name="text">
+           <string>VB-CABLE is required for SoundSplitter's virtual audio input functionality.</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="downloadPushButton">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>40</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>200</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Download VB-CABLE  </string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </widget>
      </item>
      <item>
@@ -380,7 +386,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>100</height>
+         <height>130</height>
         </size>
        </property>
        <property name="text">
