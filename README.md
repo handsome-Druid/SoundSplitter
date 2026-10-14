@@ -62,17 +62,19 @@ VB-CABLE 的名称是从虚拟声卡的角度命名的：播放器把声音送�
 安装 [uv](https://docs.astral.sh/uv/)，在项目目录先将 Qt UI 和资源文件编译为 Python 模块：
 
 ```powershell
-uv run pyside6-rcc src\ss\integration\app\resources\resources.qrc -o src\ss\integration\app\resources\resources_rc.py
-uv run pyside6-uic src\ss\integration\app\ui\main_window.ui -o src\ss\integration\app\ui\main_window_ui.py
+uv run pyside6-rcc src\SoundSplitter\integration\app\resources\resources.qrc -o src\SoundSplitter\integration\app\resources\resources_rc.py
+uv run pyside6-uic src\SoundSplitter\integration\app\ui\main_window.ui -o src\SoundSplitter\integration\app\ui\main_window_ui.py
+uv run pyside6-rcc src\setup\resources\resources.qrc -o src\setup\resources\resources_rc.py
+uv run pyside6-uic src\setup\ui\main_dialog.ui -o src\setup\ui\main_dialog_ui.py
 ```
 
-修改 `.ui`、`.qrc` 或其引用的资源文件后，需要重新执行上述命令。然后打包为单文件可执行程序：
+生成的 UI 和资源模块被 Git 忽略，首次构建时也必须生成；仅生成主程序资源不足以启动安装程序。修改 `.ui`、`.qrc` 或其引用的资源文件后，需要重新执行对应命令。使用 Nuitka 4.3 打包单文件安装程序：
 
 ```powershell
-uv run nuitka --onefile --python-flag=-m --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no src\ss
+uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml
 ```
 
-生成的单文件 `.exe` 位于 `build` 目录。
+生成的单文件安装程序位于 `build\setup.exe`。`--onefile-no-dll` 保留可执行的内部 payload；安装程序从 `__compiled__.python_runtime_dir` 复制完整 payload，再复制改名内部 EXE 实现各个入口。
 
 ## 遇到问题时
 

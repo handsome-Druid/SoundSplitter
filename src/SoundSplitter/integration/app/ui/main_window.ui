@@ -508,12 +508,12 @@ QToolButton:pressed {
   <customwidget>
    <class>AudioInputComboBox</class>
    <extends>QComboBox</extends>
-   <header>ss.integration.app.widgets.audio_input_combo_box</header>
+   <header>SoundSplitter.integration.app.widgets.audio_input_combo_box</header>
   </customwidget>
   <customwidget>
    <class>AudioOutputComboBox</class>
    <extends>QComboBox</extends>
-   <header>ss.integration.app.widgets.audio_output_combo_box</header>
+   <header>SoundSplitter.integration.app.widgets.audio_output_combo_box</header>
   </customwidget>
  </customwidgets>
  <resources>

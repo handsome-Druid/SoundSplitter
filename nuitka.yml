@@ -1,0 +1,4 @@
+- module-name: 'PySide6'
+  implicit-imports:
+    - post-import-code:
+        - '_wrap_compiled_methods = True'

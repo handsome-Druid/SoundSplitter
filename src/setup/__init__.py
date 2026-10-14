@@ -10,7 +10,6 @@ from PySide6.QtCore import (
     QDir,
     QDirIterator,
     QFile,
-    QFileInfo,
     QLockFile,
     QMessageLogContext,
     QMetaObject,
@@ -119,7 +118,7 @@ class Setup(QObject):
                 progress_bar.emit(10)
                 qInfo(self.tr("Copying files to the installation directory..."))
                 self._copy_dir(
-                    QFileInfo(__file__).dir().absolutePath(),
+                    globals()["__compiled__"].python_runtime_dir,
                     app_dir.absolutePath(),
                 )
                 if not data_dir.exists() and not data_dir.mkpath("."):
@@ -281,12 +280,37 @@ class Setup(QObject):
                     if not QDir().mkpath(target):
                         raise OSError("Create directory failed: " + target)
                     self._copy_dir(info.absoluteFilePath(), target)
-                elif info.fileName() != "setup.exe":
+                else:
                     qInfo(self.tr("Copying file: ") + info.absoluteFilePath())
                     if not QFile.copy(info.absoluteFilePath(), target):
                         raise OSError(
                             self.tr("Copy failed: ") + info.absoluteFilePath()
                         )
+                    if info.fileName() == "setup.exe":
+                        qInfo(
+                            self.tr("Copying file: ")
+                            + QDir(path=dst).filePath("SoundSplitter.exe")
+                        )
+                        if not QFile.copy(
+                            info.absoluteFilePath(),
+                            QDir(path=dst).filePath("SoundSplitter.exe"),
+                        ):
+                            raise OSError(
+                                self.tr("Copy failed: ")
+                                + QDir(path=dst).filePath("SoundSplitter.exe")
+                            )
+                        qInfo(
+                            self.tr("Copying file: ")
+                            + QDir(path=dst).filePath("uninstall.exe")
+                        )
+                        if not QFile.copy(
+                            info.absoluteFilePath(),
+                            QDir(path=dst).filePath("uninstall.exe"),
+                        ):
+                            raise OSError(
+                                self.tr("Copy failed: ")
+                                + QDir(path=dst).filePath("uninstall.exe")
+                            )
 
         @staticmethod
         def _directory_size(directory: QDir, /) -> int:
@@ -302,6 +326,7 @@ class Setup(QObject):
             return total_size // 1024
 
     def __init__(self) -> None:
+        super().__init__()
         self._app = QApplication()
         self._wizard = QWizard()
         self._ui = Ui_Wizard()
