@@ -4,33 +4,72 @@
 <context>
     <name>Setup</name>
     <message>
-        <location filename="../../src/setup/__init__.py" line="359"/>
+        <location filename="../../src/setup/__init__.py" line="352"/>
         <source>Unable to create the required folder in the local data directory. Please check permissions or available disk space.</source>
         <translation>程序无法在本地数据目录中创建所需的文件夹，请检查权限或磁盘空间。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="369"/>
         <source>Another instance is already running. Check the system tray.</source>
-        <translation>已有一个实例正在运行；请检查系统托盘。</translation>
+        <translation type="vanished">已有一个实例正在运行；请检查系统托盘。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="375"/>
+        <location filename="../../src/setup/__init__.py" line="362"/>
+        <source>The installer is already running. Please do not launch it again.</source>
+        <translation>安装程序已在运行，请勿重复启动。</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="368"/>
         <source>Could not create the single-instance lock. Check the directory permissions.</source>
         <translation>无法创建单实例锁；请检查目录权限。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="436"/>
+        <location filename="../../src/setup/__init__.py" line="378"/>
+        <source>&lt; &amp;Back</source>
+        <translation>&lt; 上一步(&amp;B)</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="381"/>
+        <source>&amp;Next &gt;</source>
+        <translation>下一步(&amp;N) &gt;</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="384"/>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="387"/>
+        <location filename="../../src/setup/__init__.py" line="448"/>
+        <source>&amp;Accept &gt;</source>
+        <translation>接受(&amp;A) &gt;</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="444"/>
         <source>Failed to open the license file.</source>
         <translation>无法打开许可证文件。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="440"/>
-        <source>Accept &gt;</source>
-        <translation>接受 &gt;</translation>
+        <location filename="../../src/setup/__init__.py" line="467"/>
+        <source>Show details</source>
+        <translation type="unfinished">显示详细信息</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="539"/>
-        <location filename="../../src/setup/__init__.py" line="544"/>
+        <location filename="../../src/setup/__init__.py" line="472"/>
+        <source>Hide details</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="592"/>
+        <source>Warning: </source>
+        <translation>警告：</translation>
+    </message>
+    <message>
+        <source>Accept &gt;</source>
+        <translation type="vanished">接受 &gt;</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="574"/>
+        <location filename="../../src/setup/__init__.py" line="579"/>
         <source>Critical: </source>
         <translation>严重错误：</translation>
     </message>
@@ -186,13 +225,13 @@
 <context>
     <name>_Install</name>
     <message>
-        <location filename="../../src/setup/__init__.py" line="109"/>
+        <location filename="../../src/setup/__init__.py" line="108"/>
         <source>Closing the running instance: </source>
         <translation>正在关闭正在运行的实例：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="115"/>
-        <location filename="../../src/setup/__init__.py" line="124"/>
+        <location filename="../../src/setup/__init__.py" line="114"/>
+        <location filename="../../src/setup/__init__.py" line="123"/>
         <source>Failed to close the running instance. Please close it manually and try again.</source>
         <translation>无法关闭正在运行的实例，请手动关闭后重试。</translation>
     </message>
@@ -232,76 +271,84 @@
         <translation>无法删除旧的开始菜单快捷方式：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="172"/>
+        <location filename="../../src/setup/__init__.py" line="171"/>
         <source>Deleting existing installation directory: </source>
         <translation>正在删除已有安装目录：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="180"/>
+        <location filename="../../src/setup/__init__.py" line="178"/>
         <source>Failed to remove the existing installation directory: </source>
         <translation>无法删除已有安装目录：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="187"/>
+        <location filename="../../src/setup/__init__.py" line="185"/>
         <source>Failed to remove the old installation directory: </source>
         <translation>无法删除旧安装目录：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="192"/>
+        <location filename="../../src/setup/__init__.py" line="190"/>
         <source>Deleting startup registry entry: </source>
         <translation>正在删除开机启动注册项：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="195"/>
+        <location filename="../../src/setup/__init__.py" line="193"/>
         <source>Deleting registry key: </source>
         <translation>正在删除注册表项：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="211"/>
+        <location filename="../../src/setup/__init__.py" line="209"/>
         <source>Failed to set permissions for the data directory.</source>
         <translation>无法设置数据目录的权限。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="215"/>
+        <location filename="../../src/setup/__init__.py" line="213"/>
         <source>Copying files to the installation directory...</source>
         <translation>正在复制文件到安装目录...</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="218"/>
+        <location filename="../../src/setup/__init__.py" line="216"/>
         <source>Failed to create the installation directory.</source>
         <translation>无法创建安装目录。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="224"/>
+        <location filename="../../src/setup/__init__.py" line="222"/>
         <source>Creating registry entries for uninstallation...</source>
         <translation>正在创建卸载所需的注册表项...</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="250"/>
+        <location filename="../../src/setup/__init__.py" line="248"/>
         <source>Creating Start Menu shortcut...</source>
         <translation>正在创建开始菜单快捷方式...</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="264"/>
+        <location filename="../../src/setup/__init__.py" line="253"/>
+        <source>Failed to create the Start Menu shortcut.</source>
+        <translation>无法创建开始菜单快捷方式。</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="256"/>
         <source>Creating Desktop shortcut...</source>
         <translation>正在创建桌面快捷方式...</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="282"/>
+        <location filename="../../src/setup/__init__.py" line="261"/>
+        <source>Failed to create the Desktop shortcut.</source>
+        <translation>无法创建桌面快捷方式。</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="270"/>
         <source>Installation failed: </source>
         <translation>安装失败：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="299"/>
-        <location filename="../../src/setup/__init__.py" line="311"/>
-        <location filename="../../src/setup/__init__.py" line="326"/>
+        <location filename="../../src/setup/__init__.py" line="289"/>
+        <location filename="../../src/setup/__init__.py" line="310"/>
         <source>Copying file: </source>
         <translation>正在复制文件：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="307"/>
-        <location filename="../../src/setup/__init__.py" line="319"/>
-        <location filename="../../src/setup/__init__.py" line="329"/>
+        <location filename="../../src/setup/__init__.py" line="297"/>
+        <location filename="../../src/setup/__init__.py" line="313"/>
         <source>Copy failed: </source>
         <translation>复制失败：</translation>
     </message>

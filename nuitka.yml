@@ -9,7 +9,6 @@
               if (
                   hasattr(func, "__compiled__")
                   and hasattr(func, "im_func")
-                  and isinstance(func.im_self, QtCore.QObject)
                   and hasattr(func.im_func, "_slots")
               ):
                   _protected.append(func)

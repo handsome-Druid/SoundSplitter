@@ -199,7 +199,7 @@ class APP:
                         changeEvent_(event)
 
             self._window.changeEvent = changeEvent
-            self._closeEvent: Callable[[QCloseEvent], None] = self._window.closeEvent
+            closeEvent_: Callable[[QCloseEvent], None] = self._window.closeEvent
 
             def closeEvent(event: QCloseEvent) -> None:
                 if (
@@ -213,7 +213,7 @@ class APP:
                     )
                     == self._message_box.StandardButton.Yes
                 ):
-                    self._closeEvent(event)
+                    closeEvent_(event)
                 else:
                     event.ignore()
 
@@ -1095,15 +1095,17 @@ class APP:
     def _on_new_connection(self) -> None:
         socket: QLocalSocket = self._server.nextPendingConnection()
 
-        @Slot(QLocalSocket)
-        def on_ready_read(socket: QLocalSocket) -> None:
+        @Slot()
+        def on_ready_read() -> None:
             while socket.bytesAvailable() >= 4:
                 match socket.read(4).data():
                     case b"SHOW":
                         self._show_action.trigger()
                     case b"EXIT":
-                        self._closeEvent(QCloseEvent())
+                        self._window.hide()
+                        self._app.quit()
                     case _:
                         pass
+                socket.disconnectFromServer()
 
         socket.readyRead.connect(on_ready_read)

@@ -3,7 +3,7 @@ from ctypes import windll
 from itertools import chain
 from os import link
 from subprocess import list2cmdline
-from sys import argv, executable, exit, modules
+from sys import argv, exit, modules
 from typing import ClassVar, NoReturn
 
 from PySide6.QtCore import (
@@ -49,7 +49,7 @@ from setup.ui import Ui_Wizard
 
 class Setup(QObject):
     APPLICATION_NAME: str = "SoundSplitter"
-    OLD_APPLICATION_NAMES: ClassVar[list[str]] = ["SoundSpliter"]
+    OLD_APPLICATION_NAMES: ClassVar[tuple[str]] = ("SoundSpliter",)
     _start_menu = _desktop = _startup = False
     _program_data = QDir(
         path=QProcessEnvironment.systemEnvironment().value("ProgramData")
@@ -168,10 +168,8 @@ class Setup(QObject):
                     old_app_dir = QDir(path=program_files.absoluteFilePath(name))
                     if old_app_dir.exists():
                         qInfo(
-                            self.tr(
-                                "Deleting existing installation directory: "
-                                + old_app_dir.absolutePath()
-                            )
+                            self.tr("Deleting existing installation directory: ")
+                            + old_app_dir.absolutePath()
                         )
                         if not old_app_dir.removeRecursively():
                             if old_app_dir == app_dir:
@@ -198,13 +196,13 @@ class Setup(QObject):
                 process = QProcess()
                 process.start(
                     "icacls",
-                    arguments=[
+                    arguments=(
                         data_dir.absolutePath(),
                         "/grant",
                         "*S-1-5-32-545:(OI)(CI)M",
                         "/C",
                         "/Q",
-                    ],
+                    ),
                 )
                 if not process.waitForFinished() or process.exitCode():
                     raise OSError(
@@ -340,9 +338,12 @@ class Setup(QObject):
         qInstallMessageHandler(self._message_handler)
         try:
             if not windll.shell32.IsUserAnAdmin():
-                if windll.shell32.ShellExecuteW(
-                    None, "runas", argv[0], list2cmdline(seq=argv[1:]), None, 1
-                ) <= 32:
+                if (
+                    windll.shell32.ShellExecuteW(
+                        None, "runas", argv[0], list2cmdline(seq=argv[1:]), None, 1
+                    )
+                    <= 32
+                ):
                     raise RuntimeError("Please run as administrator.")
                 exit(0)
             if not QDir().mkpath(self._data_dir.absolutePath()):
@@ -358,7 +359,7 @@ class Setup(QObject):
                 if self._lock.error() == QLockFile.LockError.LockFailedError:
                     raise RuntimeError(
                         self.tr(
-                            "Another instance is already running. Check the system tray."
+                            "The installer is already running. Please do not launch it again."
                         )
                     )
                 else:
@@ -373,6 +374,18 @@ class Setup(QObject):
                 match event.type():
                     case QEvent.Type.LanguageChange:
                         self._ui.retranslateUi(Wizard=self._wizard)
+                        self._ui.welcomePage.setButtonText(
+                            self._wizard.WizardButton.BackButton, self.tr("< &Back")
+                        )
+                        self._ui.welcomePage.setButtonText(
+                            self._wizard.WizardButton.NextButton, self.tr("&Next >")
+                        )
+                        self._ui.welcomePage.setButtonText(
+                            self._wizard.WizardButton.CancelButton, self.tr("Cancel")
+                        )
+                        self._ui.licensePage.setButtonText(
+                            self._wizard.WizardButton.NextButton, self.tr("&Accept >")
+                        )
                         changeEvent_(event)
                     case _:
                         changeEvent_(event)
@@ -389,7 +402,7 @@ class Setup(QObject):
                 self._ui.languageComboBox.clear()
                 self._ui.languageComboBox.addItem("en_US")
                 for file in translation_dir.entryList(
-                    ["*.qm"], filters=QDir.Filter.Files
+                    ("*.qm",), filters=QDir.Filter.Files
                 ):
                     translator = QTranslator()
                     if not translator.load(translation_dir.filePath(file)):
@@ -432,7 +445,7 @@ class Setup(QObject):
             self._ui.licenseTextBrowser.append(bytes(license.readAll().data()).decode())
             self._ui.licenseTextBrowser.moveCursor(QTextCursor.MoveOperation.Start)
             self._ui.licensePage.setButtonText(
-                self._wizard.WizardButton.NextButton, self.tr("Accept >")
+                self._wizard.WizardButton.NextButton, self.tr("&Accept >")
             )
             self._ui.licenseCheckBox.toggled.connect(
                 self._on_license_check_box_state_changed
@@ -449,9 +462,15 @@ class Setup(QObject):
             self._ui.InstallationTextBrowser.hide()
             self._ui.toolButton.toggled.connect(
                 lambda checked: (
-                    self._ui.InstallationTextBrowser.show()
+                    (
+                        self._ui.InstallationTextBrowser.show(),
+                        self._ui.toolButton.setText(self.tr("Show details")),
+                    )
                     if checked
-                    else self._ui.InstallationTextBrowser.hide()
+                    else (
+                        self._ui.InstallationTextBrowser.hide(),
+                        self._ui.toolButton.setText(self.tr("Hide details")),
+                    )
                 )
             )
             self._thread = QThread(parent=self._wizard)
@@ -469,7 +488,9 @@ class Setup(QObject):
             self._ui.homepageCheckBox.toggled.connect(
                 self._on_homepage_check_box_toggled
             )
+            self._ui.openCheckBox.toggled.connect(self._on_open_check_box_toggled)
             self._on_homepage_check_box_toggled(self._ui.homepageCheckBox.isChecked())
+            self._on_open_check_box_toggled(self._ui.openCheckBox.isChecked())
         except SystemExit:
             raise
         except BaseException as e:
@@ -535,7 +556,12 @@ class Setup(QObject):
         if checked:
             self._open_conn: QMetaObject.Connection = self._wizard.button(
                 self._wizard.WizardButton.FinishButton
-            ).clicked.connect(lambda: QProcess().startDetached(self._executable))
+            ).clicked.connect(
+                lambda: QProcess.startDetached(
+                    "explorer.exe",
+                    arguments=(QDir.toNativeSeparators(self._executable),),
+                )
+            )
         elif hasattr(self, "_open_conn"):
             self._wizard.button(
                 self._wizard.WizardButton.FinishButton
@@ -557,11 +583,13 @@ class Setup(QObject):
         self, msg_type: QtMsgType, context: QMessageLogContext, msg: str
     ) -> None:
         if msg_type == QtMsgType.QtWarningMsg:
+            if "QFont::setPointSize" in msg:
+                return
             QMetaObject.invokeMethod(
                 self._ui.InstallationTextBrowser,
                 "append",
                 Qt.ConnectionType.QueuedConnection,
-                Q_ARG(str, "Warning: " + msg),
+                Q_ARG(str, self.tr("Warning: ") + msg),
             )
         elif msg_type == QtMsgType.QtCriticalMsg:
             QMetaObject.invokeMethod(
