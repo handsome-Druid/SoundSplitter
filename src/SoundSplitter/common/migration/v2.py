@@ -23,3 +23,4 @@ class V2(BaseModel):
         default=-1
     )
     language: str = "en_US"
+    loopback: bool = Field(default=False)

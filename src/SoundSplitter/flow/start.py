@@ -28,7 +28,7 @@ from PySide6.QtCore import (
     Signal,
     Slot,
 )
-from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink, QAudioSource
+from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink
 from shiboken6 import isValid
 
 from SoundSplitter.external import Config, Split, VolumeMonitor
@@ -103,6 +103,7 @@ class Start(QObject):
     ) -> None:
         is_running: bool = not self._mutex.try_lock()
         try:
+            self._thread.requestInterruption()
             if hasattr(self, "_thread_conn"):
                 self._thread.started.disconnect(self._thread_conn)
                 del self._thread_conn
@@ -174,7 +175,6 @@ class Start(QObject):
                 )
             self._left = QAudioSink(left_device)
             self._right = QAudioSink(right_device)
-            source = QAudioSource(source_device)
             left_fmt: QAudioFormat = self._left.format()
             right_fmt: QAudioFormat = self._right.format()
             left_sample_rate: int = left_fmt.sampleRate()
@@ -184,11 +184,6 @@ class Start(QObject):
             )
             self._right.setBufferFrameCount(
                 right_sample_rate * self._config.right_buffer_time_ms // 1000
-            )
-            source.setBufferFrameCount(
-                source.format().sampleRate()
-                * self._config.source_buffer_time_ms
-                // 1000
             )
             left_id: str = bytes(left_device.id().data()).decode()
             right_id: str = bytes(right_device.id().data()).decode()
@@ -251,7 +246,7 @@ class Start(QObject):
                 self._config.source_native_period != -1
                 and self._config.source_native_period
                 * 1000000
-                // source.format().sampleRate()
+                // source_device.preferredFormat().sampleRate()
                 < min_native_period_us[source_id]
             ):
                 raise RuntimeError(
@@ -263,16 +258,15 @@ class Start(QObject):
                     % (
                         self.tr("audio input source"),
                         self._config.source_native_period,
-                        source.format().sampleRate(),
+                        source_device.preferredFormat().sampleRate(),
                         self._config.source_native_period
                         * 1000000
-                        // source.format().sampleRate(),
+                        // source_device.preferredFormat().sampleRate(),
                         min_native_period_us[source_id],
                     )
                 )
             self._left.setNativePeriodFrameCount(self._config.left_native_period)
             self._right.setNativePeriodFrameCount(self._config.right_native_period)
-            source.setNativePeriodFrameCount(self._config.source_native_period)
             left_io: QIODevice = self._left.start()
             right_io: QIODevice = self._right.start()
             self._split = Split(
@@ -280,9 +274,11 @@ class Start(QObject):
                 right_io,
                 left_fmt,
                 right_fmt,
-                source,
+                source_device,
                 left_latency=self._config.left_latency_ms,
                 right_latency=self._config.right_latency_ms,
+                source_buffer_time_ms=self._config.source_buffer_time_ms,
+                source_native_period=self._config.source_native_period,
             )
             self._split_conn: QMetaObject.Connection = self._split.finished.connect(
                 self.__exit__
@@ -292,7 +288,6 @@ class Start(QObject):
             )
             left_io.moveToThread(self._thread)
             right_io.moveToThread(self._thread)
-            source.moveToThread(self._thread)
             self._split.moveToThread(self._thread)
             self._thread_conn: QMetaObject.Connection = self._thread.started.connect(
                 lambda: self._split(None, None, None),

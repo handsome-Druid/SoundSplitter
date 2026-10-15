@@ -145,14 +145,37 @@
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_3">
      <item>
-      <widget class="QCheckBox" name="startupCheckBox">
-       <property name="layoutDirection">
-        <enum>Qt::LayoutDirection::RightToLeft</enum>
+      <layout class="QHBoxLayout" name="horizontalLayout_11">
+       <property name="spacing">
+        <number>0</number>
        </property>
-       <property name="text">
-        <string>Launch at Startup</string>
-       </property>
-      </widget>
+       <item alignment="Qt::AlignmentFlag::AlignLeft">
+        <widget class="QCheckBox" name="loopbackCheckBox">
+         <property name="layoutDirection">
+          <enum>Qt::LayoutDirection::RightToLeft</enum>
+         </property>
+         <property name="text">
+          <string>Loopback</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="startupCheckBox">
+         <property name="maximumSize">
+          <size>
+           <width>150</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="layoutDirection">
+          <enum>Qt::LayoutDirection::RightToLeft</enum>
+         </property>
+         <property name="text">
+          <string>Launch at Startup</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout">
@@ -178,7 +201,7 @@
         </widget>
        </item>
        <item>
-        <widget class="AudioInputComboBox" name="audioInputComboBox"/>
+        <widget class="QComboBox" name="audioInputComboBox"/>
        </item>
       </layout>
      </item>
@@ -505,11 +528,6 @@ QToolButton:pressed {
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>AudioInputComboBox</class>
-   <extends>QComboBox</extends>
-   <header>SoundSplitter.integration.app.widgets.audio_input_combo_box</header>
-  </customwidget>
   <customwidget>
    <class>AudioOutputComboBox</class>
    <extends>QComboBox</extends>

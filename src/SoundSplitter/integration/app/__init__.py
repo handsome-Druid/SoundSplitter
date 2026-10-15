@@ -449,6 +449,27 @@ class APP:
             self._ui.rightListWidget.currentItemChanged.connect(
                 self.on_right_list_widget_current_item_changed
             )
+            audio_input_show_popup: Callable[[], None] = (
+                self._ui.audioInputComboBox.showPopup
+            )
+
+            def _showPopup() -> None:
+                current: str = self._ui.audioInputComboBox.currentText()
+                self._ui.audioInputComboBox.clear()
+                for device in (
+                    QMediaDevices.audioOutputs()
+                    if self._config.loopback
+                    else QMediaDevices.audioInputs()
+                ):
+                    self._ui.audioInputComboBox.addItem(
+                        device.description(), userData=device
+                    )
+                index: int = self._ui.audioInputComboBox.findText(current)
+                if index >= 0:
+                    self._ui.audioInputComboBox.setCurrentIndex(index)
+                audio_input_show_popup()
+
+            self._ui.audioInputComboBox.showPopup = _showPopup
             self._ui.audioInputComboBox.activated.connect(
                 self._on_audio_input_combo_box_activated
             )
@@ -462,8 +483,11 @@ class APP:
             )
             self._mediadevices = QMediaDevices(parent=self._window)
             self._ui.audioOutputComboBox.setEnabled(False)
-            self._ui.audioOutputComboBox.activated.connect(
-                self._on_audio_output_combo_box_activated
+            self._ui.audioOutputComboBox.currentTextChanged.connect(
+                self._on_audio_output_combo_box_current_text_changed
+            )
+            self._ui.loopbackCheckBox.toggled.connect(
+                self._on_loopback_check_box_toggled
             )
             self._ui.audioCheckBox.setChecked(False)
             self._ui.audioCheckBox.checkStateChanged.connect(
@@ -516,6 +540,7 @@ class APP:
                         self._config.volume_device = device
                         break
             self._ui.refreshPushButton.click()
+            self._ui.loopbackCheckBox.setChecked(self._config.loopback)
             self._mediadevices.audioInputsChanged.connect(self._on_audio_device_changed)
             self._mediadevices.audioOutputsChanged.connect(
                 self._on_audio_device_changed
@@ -548,14 +573,18 @@ class APP:
         self._ui.leftSpinBox.setEnabled(True)
         self._ui.rightSpinBox.setEnabled(True)
         self._ui.audioInputComboBox.setEnabled(True)
-        self._ui.audioCheckBox.setEnabled(True)
-        if self._ui.audioCheckBox.isChecked():
-            self._ui.audioOutputComboBox.setEnabled(True)
+        if self._ui.loopbackCheckBox.isChecked():
+            self._ui.audioCheckBox.setEnabled(False)
         else:
-            self._ui.audioOutputComboBox.setEnabled(False)
+            self._ui.audioCheckBox.setEnabled(True)
+            if self._ui.audioCheckBox.isChecked():
+                self._ui.audioOutputComboBox.setEnabled(True)
+            else:
+                self._ui.audioOutputComboBox.setEnabled(False)
         self._ui.stopPushButton.setEnabled(False)
         self._ui.menuSettings.setEnabled(True)
         self._start_action.setEnabled(True)
+        self._ui.loopbackCheckBox.setEnabled(True)
         self._stop_action.setEnabled(False)
         if exc_type is not None:
             if self._window.isVisible():
@@ -598,6 +627,7 @@ class APP:
         self._start_action.setEnabled(False)
         self._stop_action.setEnabled(True)
         self._ui.menuSettings.setEnabled(False)
+        self._ui.loopbackCheckBox.setEnabled(False)
         self._started = True
 
     @Slot()
@@ -642,6 +672,10 @@ class APP:
                         self._ui.audioOutputComboBox.count() - 1
                     )
                     break
+        if self._ui.loopbackCheckBox.isChecked():
+            self._ui.audioOutputComboBox.clear()
+            self._ui.audioOutputComboBox.addItem(device.description(), userData=device)
+            self._ui.audioOutputComboBox.setCurrentIndex(0)
 
     @Slot(QListWidgetItem, QListWidgetItem)
     def on_left_list_widget_current_item_changed(
@@ -763,7 +797,7 @@ class APP:
             self._config.volume_device = None
 
     @Slot()
-    def _on_audio_output_combo_box_activated(self) -> None:
+    def _on_audio_output_combo_box_current_text_changed(self) -> None:
         self._config.volume_device = self._ui.audioOutputComboBox.currentData(
             Qt.ItemDataRole.UserRole
         )
@@ -1109,3 +1143,22 @@ class APP:
                 socket.disconnectFromServer()
 
         socket.readyRead.connect(on_ready_read)
+
+    @Slot(bool)
+    def _on_loopback_check_box_toggled(self, checked: bool) -> None:
+        self._config.loopback = checked
+        if self._config.source_device is None:
+            self._ui.audioInputComboBox.clear()
+            self._config.source = None
+        if checked:
+            self._ui.audioCheckBox.setChecked(True)
+            self._ui.audioOutputComboBox.clear()
+            self._ui.audioOutputComboBox.addItem(
+                self._ui.audioInputComboBox.currentText(),
+                userData=self._ui.audioInputComboBox.currentData(
+                    Qt.ItemDataRole.UserRole
+                ),
+            )
+            self._ui.audioOutputComboBox.setCurrentIndex(0)
+        self._ui.audioCheckBox.setDisabled(checked)
+        self._ui.audioOutputComboBox.setDisabled(checked)

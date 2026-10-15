@@ -49,6 +49,15 @@ class Config(V2):
 
     @property
     def source_device(self) -> QAudioDevice | None:
+        if self.loopback:
+            return next(
+                (
+                    device
+                    for device in QMediaDevices.audioOutputs()
+                    if device.description() == self.source
+                ),
+                None,
+            )
         return next(
             (
                 device
