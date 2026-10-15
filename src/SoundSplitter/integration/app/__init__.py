@@ -1,4 +1,5 @@
 from collections.abc import Callable, Collection
+from ctypes import windll
 from sys import argv, exit, modules
 from types import TracebackType
 from typing import ClassVar, Literal, NoReturn, Protocol, cast
@@ -547,8 +548,13 @@ class APP:
             )
             self._server = QLocalServer(parent=self._app)
             self._server.newConnection.connect(self._on_new_connection)
-            self._server.listen(self._app.applicationName())
-            self._ui.startPushButton.click()
+            if not self._server.listen(self._app.applicationName()):
+                raise RuntimeError(self._server.errorString())
+            if windll.shell32.IsUserAnAdmin():
+                self._pending_msg: list[str] = getattr(self, "_pending_msg", [])
+                self._pending_msg.append(self.tr("Do not run SoundSplitter as administrator."))
+            else:
+                self._ui.startPushButton.click()
         except BaseException as e:
             if isinstance(e, SystemExit) and e.code == 0:
                 raise

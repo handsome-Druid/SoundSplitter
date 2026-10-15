@@ -39,27 +39,27 @@
     </message>
     <message>
         <location filename="../../src/setup/__init__.py" line="387"/>
-        <location filename="../../src/setup/__init__.py" line="448"/>
+        <location filename="../../src/setup/__init__.py" line="449"/>
         <source>&amp;Accept &gt;</source>
         <translation>接受(&amp;A) &gt;</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="444"/>
+        <location filename="../../src/setup/__init__.py" line="445"/>
         <source>Failed to open the license file.</source>
         <translation>无法打开许可证文件。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="467"/>
+        <location filename="../../src/setup/__init__.py" line="468"/>
         <source>Show details</source>
-        <translation type="unfinished">显示详细信息</translation>
+        <translation>显示详细信息</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="472"/>
+        <location filename="../../src/setup/__init__.py" line="473"/>
         <source>Hide details</source>
-        <translation type="unfinished"></translation>
+        <translation>隐藏详情信息</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="592"/>
+        <location filename="../../src/setup/__init__.py" line="593"/>
         <source>Warning: </source>
         <translation>警告：</translation>
     </message>
@@ -68,8 +68,8 @@
         <translation type="vanished">接受 &gt;</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="574"/>
-        <location filename="../../src/setup/__init__.py" line="579"/>
+        <location filename="../../src/setup/__init__.py" line="575"/>
+        <location filename="../../src/setup/__init__.py" line="580"/>
         <source>Critical: </source>
         <translation>严重错误：</translation>
     </message>
