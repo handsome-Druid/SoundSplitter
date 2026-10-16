@@ -72,12 +72,12 @@
         <translation>音频源原生周期（帧）</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="555"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="556"/>
         <source>Do not run SoundSplitter as administrator.</source>
         <translation>不要以管理员身份运行SoundSplitter。</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="1019"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="1021"/>
         <source>: Invalid Value.</source>
         <translation>：无效的值。</translation>
     </message>
@@ -85,7 +85,7 @@
         <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="196"/>
         <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="514"/>
         <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="527"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="666"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="668"/>
         <source>Audio input source selected:</source>
         <translation>已选择音频输入源：</translation>
     </message>
@@ -122,27 +122,36 @@
     </message>
     <message>
         <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="86"/>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="188"/>
+        <source>Source options are ignored when Loopback is enabled.</source>
+        <translation>开启 Loopback 后，音源设置将不再生效。</translation>
+    </message>
+    <message>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="89"/>
         <source>Source</source>
         <translation>音频源</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="96"/>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="99"/>
         <source>Buffer time (ms):</source>
         <translation>缓冲时间（毫秒）：</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="142"/>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="145"/>
         <source>&lt;span style=&quot;color:red; font-weight:bold;&quot;&gt;⚠ Use with Caution&lt;/span&gt;</source>
         <translation>&lt;span style=&quot;color:red; font-weight:bold;&quot;&gt;⚠ 慎用&lt;/span&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="145"/>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="148"/>
         <source>Native period (frames):</source>
         <translation>原生周期（帧）：</translation>
     </message>
     <message>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="155"/>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="162"/>
+        <location filename="../../src/SoundSplitter/integration/app/ui/preferences.ui" line="169"/>
         <source>Set to -1 to restore the default value.</source>
-        <translation type="vanished">设为 -1 以恢复默认值。</translation>
+        <translation>设为 -1 以恢复默认值。</translation>
     </message>
 </context>
 <context>

@@ -23,6 +23,7 @@ from PySide6.QtCore import (
     QProcessEnvironment,
     QSettings,
     QStandardPaths,
+    QStorageInfo,
     Qt,
     QThread,
     QtMsgType,
@@ -132,7 +133,7 @@ class Setup(QObject):
                                     + old_data.absolutePath()
                                 )
                                 try:
-                                    self._copy_dir(
+                                    self._rename_dir(
                                         old_data.absolutePath(), data_dir.absolutePath()
                                     )
                                     if not old_data.removeRecursively():
@@ -194,6 +195,14 @@ class Setup(QObject):
                         uninstall_reg.remove(name)
                 self.progress_bar.emit(30)
                 process = QProcess()
+                process.setProcessChannelMode(process.ProcessChannelMode.MergedChannels)
+                process.readyReadStandardOutput.connect(
+                    lambda: qInfo(
+                        bytes(process.readAllStandardOutput().data())
+                        .decode(f"cp{windll.kernel32.GetOEMCP()}", errors="replace")
+                        .rstrip()
+                    )
+                )
                 process.start(
                     "icacls",
                     arguments=(
@@ -215,10 +224,47 @@ class Setup(QObject):
                     raise OSError(
                         self.tr("Failed to create the installation directory.")
                     )
-                self._copy_dir(
-                    globals()["__compiled__"].python_runtime_dir,
-                    app_dir.absolutePath(),
-                )
+                source: str = globals()["__compiled__"].python_runtime_dir
+                source_storage = QStorageInfo(source)
+                app_storage = QStorageInfo(app_dir.absolutePath())
+                if (
+                    source_storage.isValid()
+                    and app_storage.isValid()
+                    and source_storage.device() == app_storage.device()
+                ):
+                    self._link_dir(
+                        globals()["__compiled__"].python_runtime_dir,
+                        app_dir.absolutePath(),
+                    )
+                    process = QProcess()
+                    process.setProcessChannelMode(
+                        process.ProcessChannelMode.MergedChannels
+                    )
+                    process.readyReadStandardOutput.connect(
+                        lambda: qInfo(
+                            bytes(process.readAllStandardOutput().data())
+                            .decode(f"cp{windll.kernel32.GetOEMCP()}", errors="replace")
+                            .rstrip()
+                        )
+                    )
+                    process.start(
+                        "icacls",
+                        arguments=(
+                            app_dir.absolutePath(),
+                            "/reset",
+                            "/T",
+                            "/C",
+                            "/Q",
+                        ),
+                    )
+                    if not process.waitForFinished() or process.exitCode():
+                        raise OSError(
+                            self.tr(
+                                "Failed to set permissions for the installation directory."
+                            )
+                        )
+                else:
+                    self._copy_dir(source, app_dir.absolutePath())
                 qInfo(self.tr("Creating registry entries for uninstallation..."))
                 settings = QSettings(
                     QSettings.Scope.SystemScope,
@@ -303,15 +349,59 @@ class Setup(QObject):
                     )
                 elif info.fileName().endswith(".lock"):
                     continue
-                elif QFile(target).exists():
-                    qWarning(target + " exists. Skipping copy.")
-                    continue
                 else:
                     qInfo(self.tr("Copying file: ") + info.absoluteFilePath())
                     if not QFile.copy(info.absoluteFilePath(), target):
-                        raise OSError(
-                            self.tr("Copy failed: ") + info.absoluteFilePath()
-                        )
+                        raise OSError(self.tr("Copy failed: ") + target)
+
+        def _link_dir(self, src: str, dst: str, /) -> None:
+            dir_ = QDir()
+            for info in QDir(path=src).entryInfoList(
+                filters=QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot
+            ):
+                target: str = QDir(path=dst).filePath(info.fileName())
+                if info.isDir():
+                    if "translations/setup" in info.absoluteFilePath():
+                        continue
+                    if not dir_.mkpath(target):
+                        raise OSError("Create directory failed: " + target)
+                    self._link_dir(info.absoluteFilePath(), target)
+                elif info.fileName() == "setup.exe":
+                    qInfo(
+                        self.tr("Linking file: ")
+                        + QDir(path=dst).filePath("SoundSplitter.exe")
+                    )
+                    link(
+                        src=info.absoluteFilePath(),
+                        dst=QDir(path=dst).filePath("SoundSplitter.exe"),
+                    )
+                    link(
+                        src=info.absoluteFilePath(),
+                        dst=QDir(path=dst).filePath("uninstall.exe"),
+                    )
+                elif info.fileName().endswith(".lock"):
+                    continue
+                else:
+                    qInfo(self.tr("Linking file: ") + info.absoluteFilePath())
+                    link(src=info.absoluteFilePath(), dst=target)
+
+        def _rename_dir(self, src: str, dst: str, /) -> None:
+            dir_ = QDir()
+            for info in QDir(path=src).entryInfoList(
+                filters=QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot
+            ):
+                target: str = QDir(path=dst).filePath(info.fileName())
+                if info.isDir():
+                    if not dir_.mkpath(target):
+                        raise OSError("Create directory failed: " + target)
+                    self._rename_dir(info.absoluteFilePath(), target)
+                elif info.fileName().endswith(".lock"):
+                    continue
+                else:
+                    qInfo(self.tr("Moving file: ") + info.absoluteFilePath())
+                    file = QFile(info.absoluteFilePath())
+                    if not file.rename(target):
+                        qWarning(file.errorString())
 
         @staticmethod
         def _directory_size(directory: QDir, /) -> int:

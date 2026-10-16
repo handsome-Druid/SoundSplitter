@@ -552,7 +552,9 @@ class APP:
                 raise RuntimeError(self._server.errorString())
             if windll.shell32.IsUserAnAdmin():
                 self._pending_msg: list[str] = getattr(self, "_pending_msg", [])
-                self._pending_msg.append(self.tr("Do not run SoundSplitter as administrator."))
+                self._pending_msg.append(
+                    self.tr("Do not run SoundSplitter as administrator.")
+                )
             else:
                 self._ui.startPushButton.click()
         except BaseException as e:
