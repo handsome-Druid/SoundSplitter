@@ -6,30 +6,29 @@ from typing import NamedTuple, Self, cast, override
 from av import AudioFormat, AudioFrame, AudioLayout
 from av.filter import Graph
 from av.filter.context import FilterContext
+from numpy import dtype, frombuffer, ndarray
 from PySide6.QtCore import (
-    QCoreApplication,
-    QEvent,
-    QIODevice,
     QMutex,
     QObject,
     QThread,
     Signal,
     Slot,
 )
-from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSource, QtAudio
-from shiboken6 import isValid
-from soundcard import get_microphone
+from PySide6.QtMultimedia import QAudioDevice, QAudioFormat
+from soundcard import get_microphone, get_speaker
+
+from SoundSplitter.external import Config
 
 
 class Split(QObject):
     finished = Signal(object, object, object)
     _logger: Logger = getLogger(name=__name__)
-    _mutex = QMutex()
 
     class _Format(NamedTuple):
         rate: int
         format: AudioFormat
         layout: AudioLayout
+        channels: int
         bpf: int
 
     @staticmethod
@@ -51,31 +50,41 @@ class Split(QObject):
             .replace("Dot", ".")
             .lower()
         )
+        channels: int = fmt.channelCount()
         bpf: int = fmt.bytesPerFrame()
-        return Split._Format(rate, format, layout, bpf)
+        return Split._Format(rate, format, layout, channels, bpf)
 
     @override
     def __init__(
         self,
+        config: Config,
         /,
-        left_io: QIODevice,
-        right_io: QIODevice,
-        left_fmt: QAudioFormat,
-        right_fmt: QAudioFormat,
-        source_device: QAudioDevice,
-        left_latency: int = 0,
-        right_latency: int = 0,
-        source_buffer_time_ms: int = 250,
-        source_native_period: int = -1,
     ) -> None:
         super().__init__()
-        self._source_buffer_time_ms: int = source_buffer_time_ms
-        self._source_native_period: int = source_native_period
-        self._ios: list[QIODevice] = [left_io, right_io]
-        self._source_device: QAudioDevice = source_device
-        self._source_fmt: Split._Format = self._handler(source_device.preferredFormat())
-        self._left_fmt: Split._Format = self._handler(left_fmt)
-        self._right_fmt: Split._Format = self._handler(right_fmt)
+        self._mutex = QMutex()
+        self._config: Config = config
+        self._left_device: QAudioDevice | None = self._config.left_device
+        self._right_device: QAudioDevice | None = self._config.right_device
+        self._source_device: QAudioDevice | None = self._config.source_device
+        if self._left_device is None:
+            raise RuntimeError(self.tr("No left channel output selected"))
+        if self._right_device is None:
+            raise RuntimeError(self.tr("No right channel output selected"))
+        if self._source_device is None:
+            raise RuntimeError(self.tr("No audio input source selected"))
+        if self._left_device == self._right_device:
+            raise RuntimeError(
+                self.tr("Left and right channel outputs cannot use the same device")
+            )
+        self._source_fmt: Split._Format = self._handler(
+            self._source_device.preferredFormat()
+        )
+        self._left_fmt: Split._Format = self._handler(
+            self._left_device.preferredFormat()
+        )
+        self._right_fmt: Split._Format = self._handler(
+            self._right_device.preferredFormat()
+        )
         graph: Graph = Graph()
         self._input: FilterContext = graph.add_abuffer(
             sample_rate=self._source_fmt.rate,
@@ -98,15 +107,13 @@ class Split(QObject):
         )
         self._input.link_to(input_=mix)
         mix.link_to(input_=splitter)
-        self._sinks: tuple[FilterContext, FilterContext] = (
-            graph.add(filter="abuffersink"),
-            graph.add(filter="abuffersink"),
-        )
-        for index, (target, latency) in enumerate(
+        self._left_sink: FilterContext = graph.add(filter="abuffersink")
+        self._right_sink: FilterContext = graph.add(filter="abuffersink")
+        for index, (target, latency, sink) in enumerate(
             iterable=zip(
                 (self._left_fmt, self._right_fmt),
-                (left_latency, right_latency),
-                strict=True,
+                (self._config.left_latency_ms, self._config.right_latency_ms),
+                (self._left_sink, self._right_sink),
             )
         ):
             resample: FilterContext = graph.add(filter="aresample", ichl="mono")
@@ -127,7 +134,7 @@ class Split(QObject):
             else:
                 splitter.link_to(input_=resample, output_idx=index, input_idx=0)
             resample.link_to(input_=format)
-            format.link_to(input_=self._sinks[index])
+            format.link_to(input_=sink)
         graph.configure()
 
     def __enter__(self) -> Self:
@@ -142,41 +149,11 @@ class Split(QObject):
         /,
     ) -> None:
         is_running: bool = not self._mutex.try_lock()
-        if hasattr(self, "_source") and isValid(self._source):
-            self._source.stop()
-            self._source.deleteLater()
-            QCoreApplication.sendPostedEvents(
-                receiver=self._source,
-                event_type=QEvent.Type.DeferredDelete,
-            )
-        try:
-            if hasattr(self, "_ios"):
-                ios: list[QIODevice] = self._ios
-                del self._ios
-                self._input.push(frame=None)
-                for index, target in enumerate(
-                    iterable=(self._left_fmt, self._right_fmt)
-                ):
-                    while True:
-                        try:
-                            output: AudioFrame = cast(
-                                AudioFrame, self._sinks[index].pull()
-                            )
-                        except EOFError:
-                            break
-                        ios[index].write(
-                            bytes(
-                                memoryview(output.planes[0])[
-                                    : output.samples * target.bpf
-                                ]
-                            )
-                        )
-        finally:
-            self._mutex.unlock()
-            if is_running:
-                self.finished.emit(exc_type, exc, tb)
-            if not QThread.isMainThread():
-                self.thread().quit()
+        self._mutex.unlock()
+        if is_running:
+            self.finished.emit(exc_type, exc, tb)
+        if not QThread.isMainThread():
+            self.thread().quit()
 
     @Slot(object, object, object)
     def __call__(
@@ -192,114 +169,90 @@ class Split(QObject):
         if not self._mutex.try_lock():
             return
         try:
-            match self._source_device.mode():
-                case QAudioDevice.Mode.Input:
-                    self._source = QAudioSource(self._source_device)
-                    self._source.setBufferFrameCount(
-                        self._source_fmt.rate * self._source_buffer_time_ms // 1000
+            with (
+                get_microphone(
+                    id=bytes(
+                        cast(QAudioDevice, self._source_device).id().data()
+                    ).decode(),
+                    include_loopback=True,
+                ).recorder(
+                    samplerate=self._source_fmt.rate,
+                    blocksize=self._source_fmt.rate
+                    * self._config.source_buffer_time_ms
+                    // 1000,
+                ) as recorder,
+                get_speaker(
+                    id=bytes(cast(QAudioDevice, self._left_device).id().data()).decode()
+                ).player(
+                    samplerate=self._left_fmt.rate,
+                    channels=self._left_fmt.channels,
+                    blocksize=self._left_fmt.rate
+                    * self._config.left_buffer_time_ms
+                    // 1000,
+                ) as left_player,
+                get_speaker(
+                    id=bytes(
+                        cast(QAudioDevice, self._right_device).id().data()
+                    ).decode()
+                ).player(
+                    samplerate=self._right_fmt.rate,
+                    channels=self._right_fmt.channels,
+                    blocksize=self._right_fmt.rate
+                    * self._config.right_buffer_time_ms
+                    // 1000,
+                ) as right_player,
+            ):
+                while not self.thread().isInterruptionRequested():
+                    frame: AudioFrame = AudioFrame.from_ndarray(
+                        array=recorder.record().reshape(1, -1),
+                        format="flt",
+                        layout=self._source_fmt.layout,
                     )
-                    self._source.setNativePeriodFrameCount(self._source_native_period)
-                    self._source.stateChanged.connect(self._on_state_changed)
-                    self._source_io: QIODevice = self._source.start()
-                    self._source_io.readyRead.connect(self._on_ready_read)
-                case QAudioDevice.Mode.Output:
-                    with get_microphone(
-                        id=bytes(self._source_device.id().data()).decode(),
-                        include_loopback=True,
-                    ).recorder(samplerate=self._source_fmt.rate) as recorder:
+                    frame.sample_rate = self._source_fmt.rate
+                    self._input.push(frame)
+                    for format, player, sink in zip(
+                        (self._left_fmt, self._right_fmt),
+                        (left_player, right_player),
+                        (self._left_sink, self._right_sink),
+                    ):
                         while True:
-                            if self.thread().isInterruptionRequested():
+                            try:
+                                output: AudioFrame = cast(AudioFrame, sink.pull())
+                            except BlockingIOError:
                                 break
-                            frame: AudioFrame = AudioFrame.from_ndarray(
-                                array=recorder.record().reshape(1, -1),
-                                format="flt",
-                                layout=self._source_fmt.layout,
+                            frames: ndarray[tuple[int, int], dtype] = frombuffer(
+                                buffer=memoryview(output.planes[0])[
+                                    : output.samples * format.bpf
+                                ],
+                                dtype="float32",
+                            ).reshape(-1, format.channels)
+                            player.play(
+                                data=frames * self._config.gain
+                                if self._config.gain != 1.0
+                                else frames
                             )
-                            frame.sample_rate = self._source_fmt.rate
-                            self._input.push(frame)
-                            for index, target in enumerate(
-                                iterable=(self._left_fmt, self._right_fmt)
-                            ):
-                                while True:
-                                    try:
-                                        output: AudioFrame = cast(
-                                            AudioFrame, self._sinks[index].pull()
-                                        )
-                                    except BlockingIOError:
-                                        break
-                                    payload: bytes = bytes(
-                                        memoryview(output.planes[0])[
-                                            : output.samples * target.bpf
-                                        ]
-                                    )
-                                    written: int = self._ios[index].write(payload)
-                                    if written != len(payload):
-                                        self._logger.warning(
-                                            msg=(
-                                                self.tr("Left channel output")
-                                                if index == 0
-                                                else self.tr("Right channel output")
-                                            )
-                                            + self.tr(" audio short write: ")
-                                            + str(object=written)
-                                            + " / "
-                                            + str(object=len(payload))
-                                            + self.tr(" bytes")
-                                        )
-                case _:
-                    raise RuntimeError(
-                        self.tr("Selected source device is unavailable!")
-                    )
-        except BaseException as e:
-            self.__exit__(type(e), e, e.__traceback__)
-            raise
-
-    @Slot()
-    def _on_ready_read(self) -> None:
-        try:
-            data: bytes = cast(bytes, self._source_io.readAll())
-            if not data:
-                return
-            frame: AudioFrame = AudioFrame(
-                format=self._source_fmt.format,
-                layout=self._source_fmt.layout,
-                samples=len(data) // self._source_fmt.bpf,
-            )
-            frame.sample_rate = self._source_fmt.rate
-            memoryview(frame.planes[0])[:] = memoryview(data)
-            self._input.push(frame)
-            for index, target in enumerate(iterable=(self._left_fmt, self._right_fmt)):
+            self._input.push(frame=None)
+            for format, player, sink in zip(
+                (self._left_fmt, self._right_fmt),
+                (left_player, right_player),
+                (self._left_sink, self._right_sink),
+            ):
                 while True:
                     try:
-                        output: AudioFrame = cast(AudioFrame, self._sinks[index].pull())
+                        output: AudioFrame = cast(AudioFrame, sink.pull())
                     except BlockingIOError:
                         break
-                    payload: bytes = bytes(
-                        memoryview(output.planes[0])[: output.samples * target.bpf]
+                    frames: ndarray[tuple[int, int], dtype] = frombuffer(
+                        buffer=memoryview(output.planes[0])[
+                            : output.samples * format.bpf
+                        ],
+                        dtype="float32",
+                    ).reshape(-1, format.channels)
+                    player.play(
+                        data=frames * self._config.gain
+                        if self._config.gain != 1.0
+                        else frames
                     )
-                    written: int = self._ios[index].write(payload)
-                    if written != len(payload):
-                        self._logger.warning(
-                            msg=(
-                                self.tr("Left channel output")
-                                if index == 0
-                                else self.tr("Right channel output")
-                            )
-                            + self.tr(" audio short write: ")
-                            + str(object=written)
-                            + " / "
-                            + str(object=len(payload))
-                            + self.tr(" bytes")
-                        )
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
-
-    @Slot()
-    def _on_state_changed(self) -> None:
-        if self._source.state() == QtAudio.State.IdleState:
-            self._logger.warning(
-                msg=self.tr(
-                    "The input source buffer is full; audio data has been discarded"
-                )
-            )

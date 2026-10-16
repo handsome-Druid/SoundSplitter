@@ -1,3 +1,5 @@
+import sys
+import threading
 from copy import copy
 from logging import (
     CRITICAL,
@@ -9,10 +11,11 @@ from logging import (
     LogRecord,
     StreamHandler,
     basicConfig,
+    captureWarnings,
     getLogger,
 )
 from logging.handlers import RotatingFileHandler
-from sys import argv
+from types import TracebackType
 from typing import ClassVar, Literal, TextIO, override
 
 from PySide6.QtCore import (
@@ -109,8 +112,8 @@ class Logger(QObject):
                 datefmt="%Y-%m-%d %H:%M:%S",
             )
         )
-        if "--debug" in argv:
-            argv.remove("--debug")
+        if "--debug" in sys.argv:
+            sys.argv.remove("--debug")
             self._debug = True
             basicConfig(level=DEBUG, handlers=(stream_handler, rotating_file_handler))
         else:
@@ -121,6 +124,9 @@ class Logger(QObject):
                 level=self._levels[msg_type], msg=message
             )
         )
+        captureWarnings(capture=True)
+        sys.excepthook = self._sys_excepthook
+        threading.excepthook = self._threading_excepthook
 
     @override
     def eventFilter(self, watched: QObject, event: QEvent) -> Literal[False]:
@@ -146,3 +152,16 @@ class Logger(QObject):
             parts.append(parent.objectName() or parent.metaObject().className())
             parent = parent.parent()
         return ".".join(reversed(parts))
+
+    @staticmethod
+    def _sys_excepthook(
+        *exc_info: *tuple[type[BaseException], BaseException, TracebackType | None],
+    ) -> None:
+        getLogger(name="sys").error(msg="", exc_info=exc_info)
+
+    @staticmethod
+    def _threading_excepthook(args: threading.ExceptHookArgs) -> None:
+        assert args.exc_value is not None
+        getLogger(name="threading").error(
+            msg="", exc_info=(args.exc_type, args.exc_value, args.exc_traceback)
+        )

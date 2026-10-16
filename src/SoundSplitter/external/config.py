@@ -1,6 +1,6 @@
 from typing import ClassVar, override
 
-from pydantic import ConfigDict, ValidationError
+from pydantic import ConfigDict, PrivateAttr, ValidationError
 from pydantic_yaml import (
     to_yaml_file,  # pyright: ignore[reportUnknownVariableType]
 )
@@ -16,6 +16,15 @@ class Config(V2):
     tr: ClassVar[classmethod[Config, [str], str]] = classmethod(
         lambda cls, key: QCoreApplication.translate(cls.__name__, key)
     )
+    _gain: float = PrivateAttr(default=1.0)
+
+    @property
+    def gain(self) -> float:
+        return self._gain
+
+    @gain.setter
+    def gain(self, value: float) -> None:
+        self._gain = value
 
     @property
     def left_device(self) -> QAudioDevice | None:
