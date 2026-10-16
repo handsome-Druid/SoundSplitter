@@ -3,7 +3,7 @@ from typing import Self, override
 
 from PySide6.QtCore import QObject, Signal
 
-from SoundSplitter.external.volume_controller import VolumeController
+from SoundSplitter.external import VolumeController
 
 
 class Volume(QObject):

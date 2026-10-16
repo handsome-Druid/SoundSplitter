@@ -4,14 +4,14 @@ from typing import Literal, Self, override
 from pycaw.constants import DEVICE_STATE, EDataFlow
 from pycaw.utils import AudioDevice, AudioUtilities
 from PySide6.QtCore import QMutex, QObject, Qt, Signal, Slot
-from PySide6.QtMultimedia import QAudioDevice, QAudioSink
+from PySide6.QtMultimedia import QAudioDevice
 
 from SoundSplitter.common.volume import VolumeCallback, VolumeObject
+from SoundSplitter.external import Config
 
 
 class VolumeMonitor(VolumeObject):
     finished = Signal(object, object, object)
-    _mutex = QMutex()
 
     @Slot(object)
     def _on_notify(
@@ -19,8 +19,7 @@ class VolumeMonitor(VolumeObject):
         gain: float | Literal[False],
     ) -> None:
         try:
-            self._left.setVolume(0.0 if not gain else gain)
-            self._right.setVolume(0.0 if not gain else gain)
+            self._config.gain = 0.0 if gain is None else gain
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
@@ -28,25 +27,15 @@ class VolumeMonitor(VolumeObject):
     @override
     def __init__(
         self,
+        config: Config,
         /,
-        left: QAudioSink,
-        right: QAudioSink,
-        volume_device: QAudioDevice,
         parent: QObject | None = None,
         *,
         objectName: str | None = None,
     ) -> None:
         super().__init__(parent, objectName=objectName)
-        self._left: QAudioSink = left
-        self._right: QAudioSink = right
-        self._device: AudioDevice = next(
-            device
-            for device in AudioUtilities.GetAllDevices(
-                data_flow=EDataFlow.eRender.value,
-                device_state=DEVICE_STATE.ACTIVE.value,
-            )
-            if device.id == bytes(volume_device.id().data()).decode()
-        )
+        self._mutex = QMutex()
+        self._config: Config = config
         self.notify.connect(self._on_notify, type=Qt.ConnectionType.QueuedConnection)
 
     @Slot(object, object, object)
@@ -61,6 +50,18 @@ class VolumeMonitor(VolumeObject):
             if exc_type is not None:
                 self.__exit__(exc_type, exc, tb)
                 return
+            volume_device: QAudioDevice | None = self._config.volume_device
+            if volume_device is None:
+                self._config.gain = 1.0
+                return
+            self._device: AudioDevice = next(
+                device
+                for device in AudioUtilities.GetAllDevices(
+                    data_flow=EDataFlow.eRender.value,
+                    device_state=DEVICE_STATE.ACTIVE.value,
+                )
+                if device.id == bytes(volume_device.id().data()).decode()
+            )
             if not self._mutex.try_lock():
                 return
             try:
@@ -74,8 +75,7 @@ class VolumeMonitor(VolumeObject):
                 if self._device.EndpointVolume.GetMute()
                 else float(self._device.EndpointVolume.GetMasterVolumeLevelScalar())
             )
-            self._left.setVolume(gain)
-            self._right.setVolume(gain)
+            self._config.gain = gain
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
