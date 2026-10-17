@@ -10,6 +10,8 @@ dependencies = [
     "comtypes>=1.4.17",
     "dishka>=1.10.1",
     "numpy>=2.5.4",
+    "pyaudio>=0.2.14 ; sys_platform != 'win32'",
+    "pyaudiowpatch>=0.2.12.9 ; sys_platform == 'win32'",
     "pycaw>=20260927",
     "pydantic>=2.13.5",
     "pydantic-yaml>=1.7.0",

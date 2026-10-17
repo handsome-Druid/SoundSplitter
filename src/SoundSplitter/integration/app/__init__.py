@@ -2,7 +2,7 @@ from collections.abc import Callable, Collection
 from ctypes import windll
 from sys import argv, exit, modules
 from types import TracebackType
-from typing import ClassVar, Literal, NoReturn, Protocol, cast
+from typing import ClassVar, NoReturn, Protocol, cast
 
 import pydantic._internal._validators  # noqa: F401
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -54,12 +54,8 @@ class APP:
         lambda cls, key: QCoreApplication.translate(cls.__name__, key)
     )
     _PREF_LABELS: ClassVar[dict[str, Callable[[], str]]] = {
-        "left_buffer_time_ms": lambda: APP.tr("Left Buffer Time (ms)"),
-        "right_buffer_time_ms": lambda: APP.tr("Right Buffer Time (ms)"),
+        "output_buffer_time_ms": lambda: APP.tr("Output Buffer Time (ms)"),
         "source_buffer_time_ms": lambda: APP.tr("Source Buffer Time (ms)"),
-        "left_native_period": lambda: APP.tr("Left Native Period (frames)"),
-        "right_native_period": lambda: APP.tr("Right Native Period (frames)"),
-        "source_native_period": lambda: APP.tr("Source Native Period (frames)"),
     }
 
     class _DI(Protocol):
@@ -330,47 +326,18 @@ class APP:
 
             class Prefs(BaseModel):
                 model_config = ConfigDict(from_attributes=True)
-                left_buffer_time_ms: int
-                right_buffer_time_ms: int
+                output_buffer_time_ms: int
                 source_buffer_time_ms: int
-                left_native_period: Literal[-1, 32, 64, 128, 256, 512, 1024, 2048, 4096]
-                right_native_period: Literal[
-                    -1, 32, 64, 128, 256, 512, 1024, 2048, 4096
-                ]
-                source_native_period: Literal[
-                    -1, 32, 64, 128, 256, 512, 1024, 2048, 4096
-                ]
 
             self._prefs: Prefs = Prefs.model_validate(self._config)
             self._ui.actionPreferences.triggered.connect(
                 self._on_action_preferences_triggered
             )
-            self._pref_ui.leftBufferSpinBox.valueChanged.connect(
-                lambda value: setattr(self._prefs, "left_buffer_time_ms", value)
-            )
-            self._pref_ui.rightBufferSpinBox.valueChanged.connect(
-                lambda value: setattr(self._prefs, "right_buffer_time_ms", value)
+            self._pref_ui.outputBufferSpinBox.valueChanged.connect(
+                lambda value: setattr(self._prefs, "output_buffer_time_ms", value)
             )
             self._pref_ui.sourceBufferSpinBox.valueChanged.connect(
                 lambda value: setattr(self._prefs, "source_buffer_time_ms", value)
-            )
-            self._pref_ui.leftComboBox.addItems(
-                ("-1", "32", "64", "128", "256", "512", "1024", "2048", "4096")
-            )
-            self._pref_ui.rightComboBox.addItems(
-                ("-1", "32", "64", "128", "256", "512", "1024", "2048", "4096")
-            )
-            self._pref_ui.sourceComboBox.addItems(
-                ("-1", "32", "64", "128", "256", "512", "1024", "2048", "4096")
-            )
-            self._pref_ui.leftComboBox.currentTextChanged.connect(
-                lambda value: setattr(self._prefs, "left_native_period", int(value))
-            )
-            self._pref_ui.rightComboBox.currentTextChanged.connect(
-                lambda value: setattr(self._prefs, "right_native_period", int(value))
-            )
-            self._pref_ui.sourceComboBox.currentTextChanged.connect(
-                lambda value: setattr(self._prefs, "source_native_period", int(value))
             )
             self._pref_ui.buttonBox.rejected.connect(self._pref_dialog.close)
             self._pref_ui.buttonBox.accepted.connect(self._on_pref_button_box_accepted)
@@ -987,27 +954,15 @@ class APP:
 
     @Slot()
     def _on_action_preferences_triggered(self) -> None:
-        self._pref_ui.leftBufferSpinBox.setValue(self._config.left_buffer_time_ms)
-        self._pref_ui.rightBufferSpinBox.setValue(self._config.right_buffer_time_ms)
+        self._pref_ui.outputBufferSpinBox.setValue(self._config.output_buffer_time_ms)
         self._pref_ui.sourceBufferSpinBox.setValue(self._config.source_buffer_time_ms)
-        self._pref_ui.leftComboBox.setCurrentText(str(self._config.left_native_period))
-        self._pref_ui.rightComboBox.setCurrentText(
-            str(self._config.right_native_period)
-        )
-        self._pref_ui.sourceComboBox.setCurrentText(
-            str(self._config.source_native_period)
-        )
         self._pref_dialog.open()
 
     @Slot()
     def _on_pref_button_box_accepted(self) -> None:
         try:
-            self._config.left_buffer_time_ms = self._prefs.left_buffer_time_ms
-            self._config.right_buffer_time_ms = self._prefs.right_buffer_time_ms
+            self._config.output_buffer_time_ms = self._prefs.output_buffer_time_ms
             self._config.source_buffer_time_ms = self._prefs.source_buffer_time_ms
-            self._config.left_native_period = self._prefs.left_native_period
-            self._config.right_native_period = self._prefs.right_native_period
-            self._config.source_native_period = self._prefs.source_native_period
             self._pref_dialog.close()
         except ValidationError as e:
             if self._window.isVisible():

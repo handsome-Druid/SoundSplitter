@@ -27,6 +27,7 @@ from PySide6.QtCore import (
 from shiboken6 import isValid
 
 from SoundSplitter.external import Config, Split, VolumeMonitor
+from SoundSplitter.external.config import QAudioDevice
 
 
 class Start(QObject):
@@ -110,13 +111,10 @@ class Start(QObject):
                     if hasattr(self, "_split_conn"):
                         self._split.finished.disconnect(self._split_conn)
                         del self._split_conn
-                    if self._split.thread().isCurrentThread():
-                        self._split.__exit__(exc_type, exc, tb)
-                    else:
-                        self._exit_split.emit(exc_type, exc, tb)
+                    self._split.__exit__(exc_type, exc, tb)
             finally:
+                self._thread.quit()
                 if not self._thread.wait(1000):
-                    self._thread.quit()
                     self._thread.finished.connect(self._thread.deleteLater)
                     self._logger.warning(
                         msg=self.tr("Failed to clean up the audio thread")
@@ -165,8 +163,9 @@ class Start(QObject):
                 lambda: self._split(None, None, None),
                 type=Qt.ConnectionType.DirectConnection,
             )
-            if self._config.volume_device is not None:
-                self._volume = VolumeMonitor(self._config)
+            volume_device: QAudioDevice | None = self._config.volume_device
+            if volume_device is not None:
+                self._volume = VolumeMonitor(self._split.volume, volume_device)
                 self._volume_conn: QMetaObject.Connection = (
                     self._volume.finished.connect(self.__exit__)
                 )

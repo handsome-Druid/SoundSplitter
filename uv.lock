@@ -262,6 +262,23 @@ wheels = [
 ]
 
 [[package]]
+name = "pyaudio"
+version = "0.2.14"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/26/1d/8878c7752febb0f6716a7e1a52cb92ac98871c5aa522cba181878091607c/PyAudio-0.2.14.tar.gz", hash = "sha256:78dfff3879b4994d1f4fc6485646a57755c6ee3c19647a491f790a0895bd2f87", size = 47066, upload-time = "2023-11-07T07:11:48.806Z" }
+
+[[package]]
+name = "pyaudiowpatch"
+version = "0.2.12.9"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e7/5c/c45444bc928b6c40e2c36af9f2f721bb7ad3057debffe50f34e4081ab5d8/pyaudiowpatch-0.2.12.9-cp314-cp314-win32.whl", hash = "sha256:85b011276c882c6d302425a0a5d6bb3f00be45ef80a6c362d04b8d7234f5f5de", size = 99764, upload-time = "2026-10-06T16:13:22.148Z" },
+    { url = "https://files.pythonhosted.org/packages/87/4e/ce82cdfdcc37eadb7f405f278182d6b8bb8f6a7d177c83537ddfd53aee24/pyaudiowpatch-0.2.12.9-cp314-cp314-win_amd64.whl", hash = "sha256:dc3ae964530ffe70119a1e2f5b76c661b676aa1cf1b9755d8ecafe081ee85f53", size = 101621, upload-time = "2026-10-06T16:13:23.518Z" },
+    { url = "https://files.pythonhosted.org/packages/94/8e/fe6a70dac52966fe54d34aea4373deb8ac3226e27b96641a78bf0d716ae7/pyaudiowpatch-0.2.12.9-cp315-cp315-win32.whl", hash = "sha256:f76cdf7dd0a9deb74e95f0e9f04c2af0898eb055e1d3572bed0eb75a37de03dd", size = 99789, upload-time = "2026-10-06T16:13:24.806Z" },
+    { url = "https://files.pythonhosted.org/packages/06/9e/583c053cc5580b07a2a3ff4511bce40be32167c56b948893b728b5260d31/pyaudiowpatch-0.2.12.9-cp315-cp315-win_amd64.whl", hash = "sha256:81d51b5b88c9e2124c33d0f9f22bf51392b93a4328f34e135e861e0c2c953c7f", size = 101620, upload-time = "2026-10-06T16:13:26.186Z" },
+]
+
+[[package]]
 name = "pycaw"
 version = "20260927"
 source = { registry = "https://pypi.org/simple" }
@@ -554,6 +571,8 @@ dependencies = [
     { name = "comtypes" },
     { name = "dishka" },
     { name = "numpy" },
+    { name = "pyaudio", marker = "sys_platform != 'win32'" },
+    { name = "pyaudiowpatch", marker = "sys_platform == 'win32'" },
     { name = "pycaw" },
     { name = "pydantic" },
     { name = "pydantic-yaml" },
@@ -578,6 +597,8 @@ requires-dist = [
     { name = "comtypes", specifier = ">=1.4.17" },
     { name = "dishka", specifier = ">=1.10.1" },
     { name = "numpy", specifier = ">=2.5.4" },
+    { name = "pyaudio", marker = "sys_platform != 'win32'", specifier = ">=0.2.14" },
+    { name = "pyaudiowpatch", marker = "sys_platform == 'win32'", specifier = ">=0.2.12.9" },
     { name = "pycaw", specifier = ">=20260927" },
     { name = "pydantic", specifier = ">=2.13.5" },
     { name = "pydantic-yaml", specifier = ">=1.7.0" },
