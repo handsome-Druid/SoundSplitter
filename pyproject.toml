@@ -17,7 +17,6 @@ dependencies = [
     "pydantic-yaml>=1.7.0",
     "pyside6>=6.11.2",
     "shiboken6>=6.11.2",
-    "soundcard>=0.4.6",
 ]
 
 [project.scripts]

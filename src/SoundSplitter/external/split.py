@@ -49,6 +49,7 @@ class Split(QObject):
     _logger: Logger = getLogger(name=__name__)
     _ready_read = Signal(object, int, dict, int)
     volume = Signal(float)
+    _GAIN: ClassVar[float] = 0.001
 
     class _Format(NamedTuple):
         rate: int
@@ -120,67 +121,7 @@ class Split(QObject):
         self._right_fmt: Split._Format = self._handler(
             self._right_device.preferredFormat()
         )
-        graph: Graph = Graph()
-        self._input: FilterContext = graph.add_abuffer(
-            sample_rate=self._source_fmt.rate,
-            format=self._source_fmt.format,
-            layout=self._source_fmt.layout,
-            time_base=Fraction(numerator=1, denominator=self._source_fmt.rate),
-        )
-        mix: FilterContext = graph.add(
-            filter="aformat",
-            sample_rates=str(object=self._source_fmt.rate),
-            sample_fmts=self._source_fmt.format.planar.name,
-            channel_layouts="stereo",
-        )
-        splitter: FilterContext = graph.add(
-            filter="channelsplit", args="channel_layout=stereo"
-        )
-        self._input.link_to(input_=mix)
-        mix.link_to(input_=splitter)
-        self._left_sink: FilterContext = graph.add(filter="abuffersink")
-        self._right_sink: FilterContext = graph.add(filter="abuffersink")
-        self._pts_filters: list[FilterContext] = []
-        for index, (target, latency, sink) in enumerate(
-            iterable=zip(
-                (self._left_fmt, self._right_fmt),
-                (self._config.left_latency_ms, self._config.right_latency_ms),
-                (self._left_sink, self._right_sink),
-            )
-        ):
-            pts: FilterContext = graph.add(filter="asetpts", expr="PTS")
-            resample: FilterContext = graph.add(
-                filter="aresample",
-                args="ichl=mono:async=1:min_hard_comp=0.001:first_pts=0",
-            )
-            format: FilterContext = graph.add(
-                filter="aformat",
-                sample_rates=str(object=target.rate),
-                sample_fmts=target.format.name,
-                channel_layouts=target.layout.name,
-            )
-            if latency > 0:
-                delay: FilterContext = graph.add(
-                    filter="adelay",
-                    delays=str(object=latency),
-                    all="1",
-                )
-                splitter.link_to(input_=delay, output_idx=index, input_idx=0)
-                delay.link_to(input_=pts)
-            else:
-                splitter.link_to(input_=pts, output_idx=index, input_idx=0)
-            pts.link_to(input_=resample)
-            self._pts_filters.append(pts)
-            volume: FilterContext = graph.add(filter="volume")
-            resample.link_to(input_=format)
-            format.link_to(input_=volume)
-            volume.link_to(input_=sink)
-            self.volume.connect(
-                lambda gain, volume=volume: volume.process_command(
-                    cmd="volume", arg=str(object=gain)
-                )
-            )
-        graph.configure()
+        self._volumes: list[QMetaObject.Connection | None] = [None, None]
 
     def __enter__(self) -> Self:
         return self
@@ -194,12 +135,15 @@ class Split(QObject):
         /,
     ) -> None:
         is_running: bool = not self._mutex.try_lock()
-        self._mutex.unlock()
         try:
             try:
                 if hasattr(self, "_conn"):
                     self._ready_read.disconnect(self._conn)
                     del self._conn
+                for volume in self._volumes:
+                    if volume is not None:
+                        self.volume.disconnect(volume)
+                self._volumes = [None, None]
                 try:
                     if hasattr(self, "_source_stream"):
                         self._source_stream.stop_stream()
@@ -221,6 +165,7 @@ class Split(QObject):
                     self._pyaudio.terminate()
                     del self._pyaudio
         finally:
+            self._mutex.unlock()
             if is_running:
                 self.finished.emit(exc_type, exc, tb)
 
@@ -291,52 +236,54 @@ class Split(QObject):
             )
             self._left_capacity: int = self._left_stream.get_write_available()
             self._right_capacity: int = self._right_stream.get_write_available()
+            self._left_target: int = self._left_capacity // 2 + (
+                self._left_fmt.rate * self._config.left_latency_ms // 1000
+                if self._left_capacity // 2
+                != self._left_fmt.rate * self._config.left_latency_ms // 1000
+                + self._left_fmt.rate * self._config.output_buffer_time_ms // 2000
+                else 0
+            )
+            self._right_target: int = self._right_capacity // 2 + (
+                self._right_fmt.rate * self._config.right_latency_ms // 1000
+                if self._right_capacity // 2
+                != self._right_fmt.rate * self._config.right_latency_ms // 1000
+                + self._right_fmt.rate * self._config.output_buffer_time_ms // 2000
+                else 0
+            )
             if (
                 self._left_capacity
-                <= self._left_fmt.rate * self._config.left_latency_ms // 1000
-                + self._left_fmt.rate * self._config.source_buffer_time_ms // 1000
+                - self._left_fmt.rate * self._config.source_buffer_time_ms // 1000
+                < self._left_target
             ):
                 raise RuntimeError(
                     self.tr(
-                        "Left output buffer holds %d ms, but the delay (%d ms) "
-                        "plus one capture block (%d ms) needs more. "
-                        "Increase the output buffer."
+                        "Left output buffer holds %d ms, which cannot hold the "
+                        "buffer level (%d ms) plus one capture block (%d ms). "
+                        "Increase the output buffer or reduce the source buffer."
                     )
                     % (
                         self._left_capacity * 1000 // self._left_fmt.rate,
-                        self._config.left_latency_ms,
+                        self._left_target * 1000 // self._left_fmt.rate,
                         self._config.source_buffer_time_ms,
                     )
                 )
             if (
                 self._right_capacity
-                <= self._right_fmt.rate * self._config.right_latency_ms // 1000
-                + self._right_fmt.rate * self._config.source_buffer_time_ms // 1000
+                - self._right_fmt.rate * self._config.source_buffer_time_ms // 1000
+                < self._right_target
             ):
                 raise RuntimeError(
                     self.tr(
-                        "Right output buffer holds %d ms, but the delay (%d ms) "
-                        "plus one capture block (%d ms) needs more. "
-                        "Increase the output buffer."
+                        "Right output buffer holds %d ms, which cannot hold the "
+                        "buffer level (%d ms) plus one capture block (%d ms). "
+                        "Increase the output buffer or reduce the source buffer."
                     )
                     % (
                         self._right_capacity * 1000 // self._right_fmt.rate,
-                        self._config.right_latency_ms,
+                        self._right_target * 1000 // self._right_fmt.rate,
                         self._config.source_buffer_time_ms,
                     )
                 )
-            self._left_target: int = min(
-                self._left_fmt.rate * self._config.left_latency_ms // 1000
-                + self._left_fmt.rate * self._config.output_buffer_time_ms // 2000,
-                self._left_capacity
-                - self._left_fmt.rate * self._config.source_buffer_time_ms // 1000,
-            )
-            self._right_target: int = min(
-                self._right_fmt.rate * self._config.right_latency_ms // 1000
-                + self._right_fmt.rate * self._config.output_buffer_time_ms // 2000,
-                self._right_capacity
-                - self._right_fmt.rate * self._config.source_buffer_time_ms // 1000,
-            )
             self._conn: QMetaObject.Connection = self._ready_read.connect(
                 self._on_ready_read
             )
@@ -362,6 +309,74 @@ class Split(QObject):
                     * self._right_fmt.bpf
                 )
             )
+            graph: Graph = Graph()
+            self._input: FilterContext = graph.add_abuffer(
+                sample_rate=self._source_fmt.rate,
+                format=self._source_fmt.format,
+                layout=self._source_fmt.layout,
+                time_base=Fraction(numerator=1, denominator=self._source_fmt.rate),
+            )
+            mix: FilterContext = graph.add(
+                filter="aformat",
+                sample_rates=str(object=self._source_fmt.rate),
+                sample_fmts=self._source_fmt.format.planar.name,
+                channel_layouts="stereo",
+            )
+            splitter: FilterContext = graph.add(
+                filter="channelsplit", args="channel_layout=stereo"
+            )
+            self._input.link_to(input_=mix)
+            mix.link_to(input_=splitter)
+            self._left_sink: FilterContext = graph.add(filter="abuffersink")
+            self._right_sink: FilterContext = graph.add(filter="abuffersink")
+            self._pts_filters: list[FilterContext] = []
+            for index, (target, latency, sink) in enumerate(
+                iterable=zip(
+                    (self._left_fmt, self._right_fmt),
+                    (self._config.left_latency_ms, self._config.right_latency_ms),
+                    (self._left_sink, self._right_sink),
+                )
+            ):
+                pts: FilterContext = graph.add(filter="asetpts", expr="PTS")
+                resample: FilterContext = graph.add(
+                    filter="aresample",
+                    args=(
+                        "ichl=mono:first_pts=0:min_hard_comp="
+                        f"{(self._left_target, self._right_target)[index] / target.rate / 2}"
+                        ":async="
+                        f"{(self._left_target, self._right_target)[index] * self._source_fmt.rate / target.rate}"
+                    ),
+                )
+                format: FilterContext = graph.add(
+                    filter="aformat",
+                    sample_rates=str(object=target.rate),
+                    sample_fmts=target.format.name,
+                    channel_layouts=target.layout.name,
+                )
+                if latency > 0:
+                    delay: FilterContext = graph.add(
+                        filter="adelay",
+                        delays=str(object=latency),
+                        all="1",
+                    )
+                    splitter.link_to(input_=delay, output_idx=index, input_idx=0)
+                    delay.link_to(input_=pts)
+                else:
+                    splitter.link_to(input_=pts, output_idx=index, input_idx=0)
+                pts.link_to(input_=resample)
+                self._pts_filters.append(pts)
+                volume: FilterContext = graph.add(filter="volume")
+                resample.link_to(input_=format)
+                format.link_to(input_=volume)
+                volume.link_to(input_=sink)
+                if self._volumes[index] is not None:
+                    self.volume.disconnect(self._volumes[index])
+                self._volumes[index] = self.volume.connect(
+                    lambda gain, volume=volume: volume.process_command(
+                        cmd="volume", arg=str(object=gain)
+                    )
+                )
+            graph.configure()
             self._source_stream = self._pyaudio.open(
                 format=self._source_fmt.pa_format,
                 channels=self._source_fmt.channels,
@@ -416,7 +431,10 @@ class Split(QObject):
             ):
                 backlog: int = capacity - stream.get_write_available()
                 self._debts[index] += (
-                    (target - backlog) * self._source_fmt.rate / format.rate * 0.001
+                    (target - backlog)
+                    * self._source_fmt.rate
+                    / format.rate
+                    * self._GAIN
                 )
                 while True:
                     try:
