@@ -163,6 +163,7 @@ class Start(QObject):
                 lambda: self._split(None, None, None),
                 type=Qt.ConnectionType.DirectConnection,
             )
+            self._thread.start()
             volume_device: QAudioDevice | None = self._config.volume_device
             if volume_device is not None:
                 self._volume = VolumeMonitor(self._split.volume, volume_device)
@@ -170,7 +171,6 @@ class Start(QObject):
                     self._volume.finished.connect(self.__exit__)
                 )
                 self._volume(None, None, None)
-            self._thread.start()
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
