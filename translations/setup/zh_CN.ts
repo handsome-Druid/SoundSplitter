@@ -94,12 +94,12 @@
     <message>
         <location filename="../../src/setup/ui/main_wizard.ui" line="90"/>
         <source>Sound</source>
-        <translation></translation>
+        <translation>Sound</translation>
     </message>
     <message>
         <location filename="../../src/setup/ui/main_wizard.ui" line="113"/>
         <source>Splitter</source>
-        <translation></translation>
+        <translation>Splitter</translation>
     </message>
     <message>
         <location filename="../../src/setup/ui/main_wizard.ui" line="129"/>

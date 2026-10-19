@@ -529,7 +529,6 @@ class APP:
             else:
                 self._ui.audioOutputComboBox.setEnabled(False)
         self._ui.stopPushButton.setEnabled(False)
-        self._ui.menuSettings.setEnabled(True)
         self._start_action.setEnabled(True)
         self._ui.loopbackCheckBox.setEnabled(True)
         self._stop_action.setEnabled(False)
@@ -573,7 +572,6 @@ class APP:
         self._ui.stopPushButton.setEnabled(True)
         self._start_action.setEnabled(False)
         self._stop_action.setEnabled(True)
-        self._ui.menuSettings.setEnabled(False)
         self._ui.loopbackCheckBox.setEnabled(False)
         self._started = True
 

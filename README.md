@@ -1,88 +1,146 @@
 # SoundSplitter
 
-把两个独立的音箱当作一对立体声音箱使用：一个播放左声道，另一个播放右声道。音乐、视频和游戏照常播放，SoundSplitter 负责把声音分到两边。
+English | [简体中文](docs/README.zh-CN.md)
 
-适用于 Windows。
+Turn two separate speakers into a stereo pair: one plays the left channel, and the other plays the right. SoundSplitter keeps the output audio streams synchronized and provides independent channel delay adjustment to compensate for fixed differences in device latency.
 
-## 能做什么
+**For Windows.** Use two different audio output devices recognized by Windows. Wired, USB, and Bluetooth devices can be used together. Keep using your music player, browser, or game as usual.
 
-- 把电脑播放的声音分成左右两路，分别交给两个音箱播放。
-- 记住设置，下次启动时自动尝试开始分流。
-- 最小化到系统托盘后继续运行，不必一直开着主窗口。
-- 跟随系统音量和静音状态；两边播放不同步时，也可以手动补偿延迟。
+## 1. Start using SoundSplitter
 
-## 开始使用
+### Install SoundSplitter
 
-1. **安装虚拟声卡**：下载并安装 [VB-CABLE](https://vb-audio.com/Cable/)，按安装说明操作，必要时重启电脑。
-2. **连接两个音箱**：确认 Windows 能分别识别它们，再把 Windows 的声音输出设为 `CABLE Input`。
-3. **启动 SoundSplitter**：软件会自动配置 VB-CABLE 的输入源和音量监听。
-4. **首次使用时选好左右音箱**，点击「开始分流」，然后照常播放音乐、视频或游戏。
+1. Download `setup.exe` from the [latest release](https://github.com/handsome-Druid/SoundSplitter/releases/latest) and run it. Approve the installer's administrator prompt.
+2. The installer checks for **VB-CABLE** and offers a download link if it is not detected. Install the driver separately if you are going to use it; the installer does not install it for you.
 
-设置会自动保存。以后设备连接正常时，启动软件就会按保存的设置尝试开始分流，不必每次重新配置。延迟默认是 `0`，听起来没有不同步就不用调整。
+Only the installer needs administrator privileges. Run the SoundSplitter application as a normal user.
 
-不再使用分流时，把 Windows 的声音输出切回原来的音箱即可；「停止分流」不会替你切换系统播放设备。
+If your PC has **Steam Streaming Speakers** and you will use **Loopback** mode only, you do not need VB-CABLE: follow Section 2. The installer's **Not detected** message refers only to VB-CABLE and does not prevent that loopback setup from working.
 
-## 设置
+### Play through VB-CABLE
 
-修改设置前先点击「停止分流」，改好后再点击「开始分流」。
+1. Install [VB-CABLE](https://vb-audio.com/Cable/) if it is not already installed. Follow its driver instructions and restart Windows if requested.
+2. Connect both speakers and confirm that Windows recognizes them as separate playback devices. Set the Windows sound output to **CABLE Input**.
+3. Open SoundSplitter. It loads saved settings, automatically selects **CABLE Output** if no usable source is saved, and enables **Volume Monitoring** for **CABLE Input** when using that VB-CABLE source. It then attempts to start splitting.
+4. **If splitting has not started**, select the two physical speakers under **Select left channel output** and **Select right channel output**, then click **Start Splitting**. The outputs must be different devices; do not select the virtual cable as an output.
+5. Play stereo audio at a low volume. Leave both channel latency values at `0` unless you hear a timing difference.
 
-### 输入源和左右输出
+**If SoundSplitter has already started splitting with the correct source and outputs, just play audio. Do not stop it to repeat the setup steps.**
 
-- **音频输入源**：默认使用自动识别的 `CABLE Output`，换用其他虚拟声卡时，在这里选择对应的输入设备。
-- **左、右声道输出**：分别选择实际播放声音的两个设备，不能选同一个设备。接入新设备后，可以点击「刷新输出设备」更新列表。
-- **只分流某个应用**：在该应用或 Windows 音量混合器中，把它的输出设为 `CABLE Input`，其他应用继续使用原来的播放设备。
+```text
+Windows / App -> CABLE Input -> CABLE Output -> SoundSplitter -> L + R
+```
 
-VB-CABLE 的名称是从虚拟声卡的角度命名的：播放器把声音送进 `CABLE Input`，SoundSplitter 从 `CABLE Output` 读取，再分别送到左右音箱。不要把左右输出选回虚拟声卡，以免形成音频回路。
+Audio is sent **into CABLE Input** and read **from CABLE Output**. The standard VB-CABLE route uses **Loopback off**, which is the default for a new configuration; there is no need to select the detected source again.
 
-### 音量监听
+Settings are saved automatically. Later launches restore those choices and attempt to resume splitting; you do not need to configure the same devices again.
 
-使用 VB-CABLE 时，音量监听会自动开启。调整 Windows 中 `CABLE Input` 的音量或静音，两边的声音会一起跟随。
+## 2. More ways to route audio
 
-换用其他虚拟声卡时，勾选「音量监听」，在旁边选择对应的播放设备。取消勾选后，左右输出不再跟随它的音量。
+Loopback captures audio played through a playback device. Select a playback device as the source with **Loopback on**, or a recording device with **Loopback off**. VB-CABLE supports both modes.
 
-若两边响度不同，可以分别调整音箱或 Windows 中对应设备的音量。
+**Steam Streaming Speakers** is Steam's virtual playback device. Use it with **Loopback on** to split its audio without installing VB-CABLE.
 
-### 左右声道延迟
+| Your setup | Install VB-CABLE? | Loopback | Audio input source in SoundSplitter |
+|---|---|---|---|
+| Standard VB-CABLE setup | Yes, unless already installed | Off | `CABLE Output` |
+| Steam Streaming Speakers with loopback | No | On | `Steam Streaming Speakers` |
+| Loopback without Steam Streaming Speakers | VB-CABLE is recommended | On | `CABLE Input` |
 
-两个设备的播放延迟可能不同，尤其是有线设备和蓝牙设备搭配使用时。可以分别设置「左声道延迟(ms)」和「右声道延迟(ms)」。
+These are alternative configurations, not steps to repeat on a working setup. Stop splitting only when you want to change a running setup's source or Loopback mode; make the change, then start again. Configure a stopped setup directly.
 
-例如，右侧听起来比左侧晚约 100 毫秒，可以把左声道延迟设为 `100`，右声道保留为 `0`，再重新开始分流试听。
+### Use Steam Streaming Speakers without VB-CABLE
 
-给较快的一侧增加延迟，边调整边试听。蓝牙设备的延迟可能波动，固定的延迟值不一定能一直保持同步。
+1. Set the Windows sound output, or your player's output, to **Steam Streaming Speakers**.
+2. In SoundSplitter, enable **Loopback** and select **Steam Streaming Speakers** as the audio input source.
+3. Select your two physical speakers as the left and right outputs.
+4. Click **Start Splitting** and play audio.
 
-### 托盘和开机自启
+VB-CABLE is not required for this loopback route.
 
-- 最小化主窗口会隐藏到托盘，分流仍可继续运行。
-- 点击窗口关闭按钮会询问是否退出，不是直接隐藏到托盘。
-- 勾选「开机自启」，登录 Windows 后软件会自动启动，在托盘中运行。
-- 程序只允许运行一个实例。如果提示已有实例运行，先检查系统托盘。
+### Use VB-CABLE in Loopback mode
 
-## 从源码编译
+VB-CABLE is recommended when you do not have Steam Streaming Speakers, including for loopback use. Send Windows or application audio to **CABLE Input**, enable **Loopback**, and select **CABLE Input** as the source. Select your physical speakers as the left and right outputs, then start splitting.
 
-安装 [uv](https://docs.astral.sh/uv/)，在项目目录先将 Qt UI 和资源文件编译为 Python 模块：
+```text
+Windows / App -> CABLE Input [Loopback] -> SoundSplitter -> L + R
+```
+
+With Loopback **off**, select **CABLE Output** as the VB-CABLE source. With Loopback **on**, select **CABLE Input**. Select the source after changing the mode, because the source list changes between recording and playback devices.
+
+## 3. Fine-tune your setup
+
+To change the source, output devices, Loopback mode, volume-monitoring setup, or channel latency while splitting, click **Stop Splitting**, make your changes, then click **Start Splitting**. When not splitting, configure these controls directly. The output volume sliders and mute buttons work while splitting.
+
+### Split only one application's audio
+
+Use that application's output selector or the Windows volume mixer to send it to **CABLE Input** or **Steam Streaming Speakers**, matching your SoundSplitter route. Leave other applications on their normal playback device. Changing only an application's output this way does not require stopping SoundSplitter.
+
+SoundSplitter captures the selected audio endpoint, not an individual process. If multiple applications play through that endpoint, their audio is split together.
+
+### Balance volume and mute
+
+- The left and right volume sliders and speaker buttons control each selected output device's Windows volume and mute state, not just SoundSplitter's audio.
+- In the standard VB-CABLE setup, **Volume Monitoring** is enabled automatically for **CABLE Input**, so the split audio follows that device's volume and mute state.
+- For another non-loopback input, enable **Volume Monitoring** and choose the corresponding playback device beside it if you want to follow that device's volume. Disable it if you do not want that tracking.
+- In Loopback mode, the separate **Volume Monitoring** controls are locked and cannot be changed independently.
+
+### Align speakers with different delays
+
+Use **Left channel latency (ms)** and **Right channel latency (ms)** to add delay to the faster side. Both default to `0`.
+
+For example, if the right speaker sounds about `100` ms later than the left, set the left latency to `100` and keep the right at `0`. Restart splitting and listen again; adjust in small steps.
+
+Compensating for the fixed delay difference keeps playback from the two devices synchronized.
+
+### Language, startup, and the system tray
+
+- Use the language selector to switch between the available interface languages; the selection is saved.
+- Enable **Launch at Startup** to start SoundSplitter in the system tray when you sign in to Windows.
+- Minimize the window or choose **Hide to Tray** to keep splitting in the background. Click the tray icon to show the window again.
+- Closing the window asks whether to exit; it is not the same as hiding it. You can also choose **Exit** from the tray menu.
+- Only one instance runs at a time. If SoundSplitter is already running, check the system tray before starting another copy.
+
+## 4. Troubleshooting
+
+| Problem | What to check |
+|---|---|
+| No sound | Confirm that audio is playing into the virtual playback device, that the selected source matches the Loopback mode, and that both physical outputs are selected and unmuted. Check the monitored device's volume too if Volume Monitoring is enabled. |
+| Only one side plays | Check both output selections, volumes, and mute buttons. Try audio with content in both stereo channels. |
+| A device is missing | Make sure Windows recognizes and enables it. Click **Refresh Output Devices** for the output lists, or reopen the input-source menu to refresh its devices. |
+| Steam Streaming Speakers is missing | Use the recommended VB-CABLE setup. It supports both standard capture and Loopback mode. |
+| The installer says VB-CABLE is not detected | Install VB-CABLE for the VB-CABLE route. The Steam Streaming Speakers loopback route does not need it. |
+| Echo or feedback | Use a virtual playback device as the source, not either physical output that SoundSplitter is writing to. Keep the left and right outputs on the actual speakers. |
+| One speaker plays later than the other | Stop splitting, add channel latency to the faster side to compensate for the delay difference, then start splitting again. |
+
+## 5. Stop using SoundSplitter or uninstall it
+
+1. Click **Stop Splitting** when you no longer want to split audio.
+2. Change the Windows or application's output back to a normal playback device. Stopping SoundSplitter does **not** switch Windows away from the virtual device for you.
+3. To remove the application, uninstall **SoundSplitter** from Windows **Settings > Apps > Installed apps**. In the uninstaller, check **Keep user data** to preserve settings for a later installation, or leave it unchecked to remove them.
+
+Some temporary uninstaller files are scheduled for removal when Windows next starts. Uninstalling SoundSplitter does not uninstall VB-CABLE or Steam's audio devices.
+
+## 6. Build from source
+
+On Windows, install Python 3.14+ and [uv](https://docs.astral.sh/uv/). Run these commands from the repository root to install dependencies, generate the UI/resources and translations, and build the installer:
 
 ```powershell
 uv run pyside6-rcc src\SoundSplitter\integration\app\resources\resources.qrc -o src\SoundSplitter\integration\app\resources\resources_rc.py
 uv run pyside6-uic src\SoundSplitter\integration\app\ui\main_window.ui -o src\SoundSplitter\integration\app\ui\main_window_ui.py
 uv run pyside6-rcc src\setup\resources\resources.qrc -o src\setup\resources\resources_rc.py
-uv run pyside6-uic src\setup\ui\main_dialog.ui -o src\setup\ui\main_dialog_ui.py
-uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\SoundSplitter -ts translations\SoundSplitter\zh_CN.ts 
+uv run pyside6-uic src\setup\ui\main_wizard.ui -o src\setup\ui\main_wizard_ui.py
+uv run pyside6-rcc src\uninstall\resources\resources.qrc -o src\uninstall\resources\resources_rc.py
+uv run pyside6-uic src\uninstall\ui\main_wizard.ui -o src\uninstall\ui\main_wizard_ui.py
+
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\SoundSplitter -ts translations\SoundSplitter\zh_CN.ts
 uv run pyside6-lrelease translations\SoundSplitter\zh_CN.ts -qm translations\SoundSplitter\zh_CN.qm
 uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\setup -ts translations\setup\zh_CN.ts
 uv run pyside6-lrelease translations\setup\zh_CN.ts -qm translations\setup\zh_CN.qm
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\uninstall -ts translations\uninstall\zh_CN.ts
+uv run pyside6-lrelease translations\uninstall\zh_CN.ts -qm translations\uninstall\zh_CN.qm
+
+uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts
 ```
 
-生成的 UI 和资源模块被 Git 忽略，首次构建时也必须生成；仅生成主程序资源不足以启动安装程序。修改 `.ui`、`.qrc` 或其引用的资源文件后，需要重新执行对应命令。使用 Nuitka 4.3 打包单文件安装程序：
-
-```powershell
-uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts --include-package-data=soundcard:*.py.h
-```
-
-生成的单文件安装程序位于 `build\setup.exe`。`--onefile-no-dll` 保留可执行的内部 payload；安装程序从 `__compiled__.python_runtime_dir` 复制完整 payload，再复制改名内部 EXE 实现各个入口。
-
-## 遇到问题时
-
-- **没有声音**：确认原应用正在播放，输出已设为 `CABLE Input`，本工具输入选的是 `CABLE Output`，左右输出选择正确且没有静音。如果启用了音量监听，也检查被监听设备的音量。
-- **只听到一侧**：检查原音频是否只有一个声道有声音，再检查对应的输出设备是否正常。
-- **设备没有出现在列表中**：先确认 Windows 能识别设备；输出列表可点击「刷新输出设备」，必要时重新打开程序。
-- **左右不同步**：给较快的一侧增加延迟；设备本身的延迟波动可能仍会影响效果。
+The resulting installer is `build\setup.exe`. Generated UI/resource modules and compiled translations are ignored by Git, so regenerate them before building from a fresh checkout.

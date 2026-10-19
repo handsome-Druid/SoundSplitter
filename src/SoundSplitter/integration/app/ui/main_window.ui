@@ -140,7 +140,7 @@
       <x>250</x>
       <y>90</y>
       <width>541</width>
-      <height>127</height>
+      <height>129</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -504,28 +504,6 @@ QToolButton:pressed {
     </layout>
    </widget>
   </widget>
-  <widget class="QMenuBar" name="menuBar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>800</width>
-     <height>33</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menuSettings">
-    <property name="title">
-     <string>Settings(&amp;S)</string>
-    </property>
-    <addaction name="actionPreferences"/>
-   </widget>
-   <addaction name="menuSettings"/>
-  </widget>
-  <action name="actionPreferences">
-   <property name="text">
-    <string>Preferences...</string>
-   </property>
-  </action>
  </widget>
  <customwidgets>
   <customwidget>
