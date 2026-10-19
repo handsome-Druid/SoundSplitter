@@ -202,7 +202,7 @@ class Split(QObject):
                 self._left_sink: FilterContext = graph.add(filter="abuffersink")
                 self._right_sink: FilterContext = graph.add(filter="abuffersink")
                 self._pts_filters: list[FilterContext] = []
-                for index, (target, sink, samples) in enumerate(
+                for index, (fmt, sink, target) in enumerate(
                     iterable=zip(
                         (self._left_fmt, self._right_fmt),
                         (self._left_sink, self._right_sink),
@@ -217,21 +217,21 @@ class Split(QObject):
                         filter="aresample",
                         args=(
                             "ichl=mono:first_pts=0:min_hard_comp="
-                            f"{samples / target.rate / 2}"
+                            f"{target / fmt.rate / 2}"
                             ":async="
-                            f"{samples * self._source_fmt.rate / target.rate}"
+                            f"{target * self._source_fmt.rate / fmt.rate}"
                         ),
                     )
                     delay: FilterContext = graph.add(
                         filter="adelay",
-                        delays=f"{samples}S",
+                        delays=f"{target}S",
                         all="1",
                     )
                     format: FilterContext = graph.add(
                         filter="aformat",
-                        sample_rates=str(object=target.rate),
-                        sample_fmts=target.format.name,
-                        channel_layouts=target.layout.name,
+                        sample_rates=str(object=fmt.rate),
+                        sample_fmts=fmt.format.name,
+                        channel_layouts=fmt.layout.name,
                     )
                     splitter.link_to(input_=pts, output_idx=index, input_idx=0)
                     pts.link_to(input_=resample)
