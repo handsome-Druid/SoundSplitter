@@ -2,10 +2,10 @@ from collections.abc import Callable, Collection
 from ctypes import windll
 from sys import argv, exit, modules
 from types import TracebackType
-from typing import ClassVar, NoReturn, Protocol, cast
+from typing import NoReturn, Protocol, cast
 
 import pydantic._internal._validators  # noqa: F401
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import ValidationError
 from PySide6.QtCore import (
     QCoreApplication,
     QDir,
@@ -29,7 +29,6 @@ from PySide6.QtMultimedia import QAudioDevice, QMediaDevices
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import (
     QApplication,
-    QDialog,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
@@ -45,7 +44,6 @@ from SoundSplitter.flow import Config, Start, Volume
 from .resources import resources_rc
 
 modules["resources_rc"] = resources_rc
-from .ui import Ui_Dialog as UI_Preferences
 from .ui import Ui_MainWindow
 
 
@@ -53,10 +51,6 @@ class APP:
     tr: classmethod[APP, [str], str] = classmethod(
         lambda cls, key: QCoreApplication.translate(cls.__name__, key)
     )
-    _PREF_LABELS: ClassVar[dict[str, Callable[[], str]]] = {
-        "output_buffer_time_ms": lambda: APP.tr("Output Buffer Time (ms)"),
-        "source_buffer_time_ms": lambda: APP.tr("Source Buffer Time (ms)"),
-    }
 
     class _DI(Protocol):
         def get[T](self, _: type[T], /) -> T: ...
@@ -180,8 +174,6 @@ class APP:
                         event.accept()
                     case QEvent.Type.LanguageChange:
                         self._ui.retranslateUi(MainWindow=self._window)
-                        if hasattr(self, "_pref_ui"):
-                            self._pref_ui.retranslateUi(Dialog=self._pref_dialog)
                         self._start_action.setText(self._ui.startPushButton.text())
                         self._stop_action.setText(self._ui.stopPushButton.text())
                         self._quit_action.setText(self.tr("Exit"))
@@ -320,27 +312,7 @@ class APP:
             self._ui.languageComboBox.activated.connect(
                 self._on_language_combo_box_activated
             )
-            self._pref_dialog = QDialog(parent=self._window, modal=True)
-            self._pref_ui: UI_Preferences = UI_Preferences()
-            self._pref_ui.setupUi(Dialog=self._pref_dialog)
 
-            class Prefs(BaseModel):
-                model_config = ConfigDict(from_attributes=True)
-                output_buffer_time_ms: int
-                source_buffer_time_ms: int
-
-            self._prefs: Prefs = Prefs.model_validate(self._config)
-            self._ui.actionPreferences.triggered.connect(
-                self._on_action_preferences_triggered
-            )
-            self._pref_ui.outputBufferSpinBox.valueChanged.connect(
-                lambda value: setattr(self._prefs, "output_buffer_time_ms", value)
-            )
-            self._pref_ui.sourceBufferSpinBox.valueChanged.connect(
-                lambda value: setattr(self._prefs, "source_buffer_time_ms", value)
-            )
-            self._pref_ui.buttonBox.rejected.connect(self._pref_dialog.close)
-            self._pref_ui.buttonBox.accepted.connect(self._on_pref_button_box_accepted)
             self._ui.leftToolButton.setIconSize(QSize(20, 16))
             self._ui.rightToolButton.setIconSize(QSize(20, 16))
             self._ui.leftHorizontalSlider.valueChanged.connect(
@@ -951,45 +923,6 @@ class APP:
                 if translator is not None:
                     self._app.installTranslator(translator)
         self._config.language = self._ui.languageComboBox.currentText()
-
-    @Slot()
-    def _on_action_preferences_triggered(self) -> None:
-        self._pref_ui.outputBufferSpinBox.setValue(self._config.output_buffer_time_ms)
-        self._pref_ui.sourceBufferSpinBox.setValue(self._config.source_buffer_time_ms)
-        self._pref_dialog.open()
-
-    @Slot()
-    def _on_pref_button_box_accepted(self) -> None:
-        try:
-            self._config.output_buffer_time_ms = self._prefs.output_buffer_time_ms
-            self._config.source_buffer_time_ms = self._prefs.source_buffer_time_ms
-            self._pref_dialog.close()
-        except ValidationError as e:
-            if self._window.isVisible():
-                box = QMessageBox(
-                    QMessageBox.Icon.Critical,
-                    self._app.applicationName(),
-                    ", ".join(
-                        self._PREF_LABELS[cast(str, error["loc"][0])]()
-                        for error in e.errors()
-                    )
-                    + self.tr(": Invalid Value."),
-                    buttons=QMessageBox.StandardButton.Ok,
-                    parent=self._pref_dialog,
-                )
-                self._message_boxes = getattr(self, "_message_boxes", set())
-                self._message_boxes.add(box)
-                box.finished.connect(
-                    lambda: getattr(self, "_message_boxes", set()).discard(box)
-                )
-                box.finished.connect(
-                    lambda: getattr(self, "_hidden", set()).discard(box)
-                )
-                box.finished.connect(box.deleteLater)
-                box.open()
-            else:
-                self._pending_msg: list[str] = getattr(self, "_pending_msg", [])
-                self._pending_msg.append(str(object=e))
 
     _volume_1 = QIcon()
     _volume_1.addFile(

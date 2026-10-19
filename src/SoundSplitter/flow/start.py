@@ -4,7 +4,6 @@ from ctypes import (
     WinDLL,
     byref,
     c_bool,
-    c_int,
     c_ulong,
     c_void_p,
     c_wchar_p,
@@ -46,8 +45,6 @@ class Start(QObject):
                 c_wchar_p,
                 POINTER(cls=c_ulong),
             ]
-            avrt.AvSetMmThreadPriority.restype = c_bool
-            avrt.AvSetMmThreadPriority.argtypes = [c_void_p, c_int]
             handle: int | None = avrt.AvSetMmThreadCharacteristicsW(
                 "Pro Audio", byref(c_ulong())
             )
@@ -64,15 +61,6 @@ class Start(QObject):
                 self._handle = None
             else:
                 self._handle = c_void_p(handle)
-                if not avrt.AvSetMmThreadPriority(self._handle, 2):
-                    error_code: int = get_last_error()
-                    Split._logger.warning(
-                        self.tr(
-                            "Failed to set MMCSS thread priority (Windows error %s: %s)"
-                        ),
-                        error_code,
-                        FormatError(error_code).strip(),
-                    )
             try:
                 QTimer.singleShot(0, lambda: self.runned.emit(None, None, None))
                 super().run()

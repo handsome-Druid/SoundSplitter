@@ -26,19 +26,19 @@
    <string>Wizard</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">font-size: 11px</string>
+   <string notr="true">font-size: 13px</string>
   </property>
   <property name="wizardStyle">
    <enum>QWizard::WizardStyle::ModernStyle</enum>
   </property>
-  <widget class="QWizardPage" name="welcomePage">
+  <widget class="QWizardPage" name="copyPage">
    <property name="title">
     <string>Uninstall SoundSplitter</string>
    </property>
    <property name="subTitle">
     <string>Please wait while the uninstaller copies itself to a temporary directory.</string>
    </property>
-   <widget class="QProgressBar" name="progressBar">
+   <widget class="QProgressBar" name="copyProgressBar">
     <property name="geometry">
      <rect>
       <x>27</x>
@@ -65,7 +65,148 @@
     </property>
    </widget>
   </widget>
-  <widget class="QWizardPage" name="wizardPage2"/>
+  <widget class="QWizardPage" name="waitPage">
+   <property name="title">
+    <string>Uninstall SoundSplitter</string>
+   </property>
+   <property name="subTitle">
+    <string>Please wait while the temporary uninstaller starts.</string>
+   </property>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>80</y>
+      <width>161</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Starting uninstaller...</string>
+    </property>
+   </widget>
+   <widget class="QProgressBar" name="startProgressBar">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>140</y>
+      <width>541</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignmentFlag::AlignCenter</set>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QWizardPage" name="optionPage">
+   <property name="title">
+    <string>Uninstall SoundSplitter</string>
+   </property>
+   <property name="subTitle">
+    <string>Choose whether to keep your personal data after uninstalling SoundSplitter.</string>
+   </property>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>50</y>
+      <width>551</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <item>
+      <widget class="QCheckBox" name="dataCheckBox">
+       <property name="text">
+        <string>Keep user data</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="styleSheet">
+        <string notr="true">color: rgb(100, 100, 100)</string>
+       </property>
+       <property name="text">
+        <string>Your settings, preferences, and other user data will be preserved for future installations.</string>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
+  <widget class="QWizardPage" name="progressPage">
+   <property name="title">
+    <string>Uninstalling SoundSplitter</string>
+   </property>
+   <property name="subTitle">
+    <string>Please wait while SoundSplitter is being removed from your computer.</string>
+   </property>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>8</x>
+      <y>76</y>
+      <width>561</width>
+      <height>241</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <item>
+      <widget class="QTextBrowser" name="textBrowser"/>
+     </item>
+     <item alignment="Qt::AlignmentFlag::AlignTop">
+      <widget class="QToolButton" name="detailToolButton">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>Show details</string>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>9</x>
+      <y>5</y>
+      <width>561</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_3">
+     <item>
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Uninstalling...</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QProgressBar" name="uninstallProgressBar">
+       <property name="layoutDirection">
+        <enum>Qt::LayoutDirection::RightToLeft</enum>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </widget>
+  </widget>
  </widget>
  <resources/>
  <connections/>
