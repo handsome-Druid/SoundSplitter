@@ -9,8 +9,8 @@ from typing import ClassVar, NamedTuple, Self, cast, override
 from av import AudioFormat, AudioFrame, AudioLayout
 from av.filter import Graph
 from av.filter.context import FilterContext
-from PySide6.QtCore import QMetaObject, QMutex, QObject, Signal, Slot
-from PySide6.QtMultimedia import QAudioDevice, QAudioFormat
+from PySide6.QtCore import QIODevice, QMetaObject, QMutex, QObject, Signal, Slot
+from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink
 
 if platform == "win32":
     from pyaudiowpatch import (
@@ -49,7 +49,6 @@ class Split(QObject):
     _logger: Logger = getLogger(name=__name__)
     _ready_read = Signal(object, int, dict, int)
     volume = Signal(float)
-    _GAIN: ClassVar[float] = 0.001
 
     class _Format(NamedTuple):
         rate: int
@@ -122,6 +121,7 @@ class Split(QObject):
             self._right_device.preferredFormat()
         )
         self._volumes: list[QMetaObject.Connection | None] = [None, None]
+        self._output_buffer_time_ms: int = 0
 
     def __enter__(self) -> Self:
         return self
@@ -144,6 +144,10 @@ class Split(QObject):
                     if volume is not None:
                         self.volume.disconnect(volume)
                 self._volumes = [None, None]
+                if hasattr(self, "_sink_io"):
+                    self._sink.stop()
+                    del self._sink_io
+                    del self._sink
                 try:
                     if hasattr(self, "_source_stream"):
                         self._source_stream.stop_stream()
@@ -177,226 +181,236 @@ class Split(QObject):
         tb: TracebackType | None,
         /,
     ) -> None:
-        if exc_type is not None:
-            self.__exit__(exc_type, exc, tb)
-            return
-        if not self._mutex.try_lock():
-            return
-        self._pyaudio = PyAudio()
-        host_api_index: str | int = self._pyaudio.get_host_api_info_by_type(
-            host_api_type
-        )["index"]
-        assert self._left_device is not None
-        assert self._right_device is not None
-        assert self._source_device is not None
-        source_name: str = self._source_device.description()
-        if (
-            self._source_device.mode() == QAudioDevice.Mode.Output
-            and platform == "win32"
-        ):
-            source_name += " [Loopback]"
-        left_name: str = self._left_device.description()
-        right_name: str = self._right_device.description()
-        for i in range(self._pyaudio.get_device_count()):
-            device_info = self._pyaudio.get_device_info_by_index(i)
-            if device_info["hostApi"] != host_api_index:
-                continue
-            if device_info["name"] == source_name:
-                self._source_index: int = i
-                continue
-            if device_info["name"] == left_name:
-                self._left_index: int = i
-                continue
-            if device_info["name"] == right_name:
-                self._right_index: int = i
-        self._pts = 0
-        self._debts: list[float] = [0.0, 0.0]
         try:
-            self._left_stream = self._pyaudio.open(
-                format=self._left_fmt.pa_format,
-                channels=self._left_fmt.channels,
-                rate=self._left_fmt.rate,
-                output=True,
-                output_device_index=self._left_index,
-                frames_per_buffer=(
-                    self._left_fmt.rate * self._config.left_latency_ms // 1000
-                    + self._left_fmt.rate * self._config.output_buffer_time_ms // 2000
-                ),
-            )
-            self._right_stream = self._pyaudio.open(
-                format=self._right_fmt.pa_format,
-                channels=self._right_fmt.channels,
-                rate=self._right_fmt.rate,
-                output=True,
-                output_device_index=self._right_index,
-                frames_per_buffer=(
-                    self._right_fmt.rate * self._config.right_latency_ms // 1000
-                    + self._right_fmt.rate * self._config.output_buffer_time_ms // 2000
-                ),
-            )
-            self._left_capacity: int = self._left_stream.get_write_available()
-            self._right_capacity: int = self._right_stream.get_write_available()
-            self._left_target: int = self._left_capacity // 2 + (
-                self._left_fmt.rate * self._config.left_latency_ms // 1000
-                if self._left_capacity // 2
-                != self._left_fmt.rate * self._config.left_latency_ms // 1000
-                + self._left_fmt.rate * self._config.output_buffer_time_ms // 2000
-                else 0
-            )
-            self._right_target: int = self._right_capacity // 2 + (
-                self._right_fmt.rate * self._config.right_latency_ms // 1000
-                if self._right_capacity // 2
-                != self._right_fmt.rate * self._config.right_latency_ms // 1000
-                + self._right_fmt.rate * self._config.output_buffer_time_ms // 2000
-                else 0
-            )
+            if exc_type is not None:
+                self.__exit__(exc_type, exc, tb)
+                return
+            if not self._mutex.try_lock():
+                return
+            self._pyaudio = PyAudio()
+            host_api_index: str | int = self._pyaudio.get_host_api_info_by_type(
+                host_api_type
+            )["index"]
+            assert self._left_device is not None
+            assert self._right_device is not None
+            assert self._source_device is not None
+            source_name: str = self._source_device.description()
             if (
-                self._left_capacity
-                - self._left_fmt.rate * self._config.source_buffer_time_ms // 1000
-                < self._left_target
+                self._source_device.mode() == QAudioDevice.Mode.Output
+                and platform == "win32"
             ):
-                raise RuntimeError(
-                    self.tr(
-                        "Left output buffer holds %d ms, which cannot hold the "
-                        "buffer level (%d ms) plus one capture block (%d ms). "
-                        "Increase the output buffer or reduce the source buffer."
-                    )
-                    % (
-                        self._left_capacity * 1000 // self._left_fmt.rate,
-                        self._left_target * 1000 // self._left_fmt.rate,
-                        self._config.source_buffer_time_ms,
-                    )
-                )
-            if (
-                self._right_capacity
-                - self._right_fmt.rate * self._config.source_buffer_time_ms // 1000
-                < self._right_target
-            ):
-                raise RuntimeError(
-                    self.tr(
-                        "Right output buffer holds %d ms, which cannot hold the "
-                        "buffer level (%d ms) plus one capture block (%d ms). "
-                        "Increase the output buffer or reduce the source buffer."
-                    )
-                    % (
-                        self._right_capacity * 1000 // self._right_fmt.rate,
-                        self._right_target * 1000 // self._right_fmt.rate,
-                        self._config.source_buffer_time_ms,
-                    )
-                )
-            self._conn: QMetaObject.Connection = self._ready_read.connect(
-                self._on_ready_read
-            )
-            self._left_stream.write(
-                bytes(
-                    (
-                        self._left_target
-                        + self._left_fmt.rate
-                        * self._config.source_buffer_time_ms
-                        // 1000
-                    )
-                    * self._left_fmt.bpf
-                )
-            )
-            self._right_stream.write(
-                bytes(
-                    (
-                        self._right_target
-                        + self._right_fmt.rate
-                        * self._config.source_buffer_time_ms
-                        // 1000
-                    )
-                    * self._right_fmt.bpf
-                )
-            )
-            graph: Graph = Graph()
-            self._input: FilterContext = graph.add_abuffer(
-                sample_rate=self._source_fmt.rate,
-                format=self._source_fmt.format,
-                layout=self._source_fmt.layout,
-                time_base=Fraction(numerator=1, denominator=self._source_fmt.rate),
-            )
-            mix: FilterContext = graph.add(
-                filter="aformat",
-                sample_rates=str(object=self._source_fmt.rate),
-                sample_fmts=self._source_fmt.format.planar.name,
-                channel_layouts="stereo",
-            )
-            splitter: FilterContext = graph.add(
-                filter="channelsplit", args="channel_layout=stereo"
-            )
-            self._input.link_to(input_=mix)
-            mix.link_to(input_=splitter)
-            self._left_sink: FilterContext = graph.add(filter="abuffersink")
-            self._right_sink: FilterContext = graph.add(filter="abuffersink")
-            self._pts_filters: list[FilterContext] = []
-            for index, (target, latency, sink) in enumerate(
-                iterable=zip(
+                source_name += " [Loopback]"
+            left_name: str = self._left_device.description()
+            right_name: str = self._right_device.description()
+            for i in range(self._pyaudio.get_device_count()):
+                device_info = self._pyaudio.get_device_info_by_index(i)
+                if device_info["hostApi"] != host_api_index:
+                    continue
+                if device_info["name"] == source_name:
+                    self._source_index: int = i
+                    continue
+                if device_info["name"] == left_name:
+                    self._left_index: int = i
+                    continue
+                if device_info["name"] == right_name:
+                    self._right_index: int = i
+            self._pts = 0
+            self._debts: list[float] = [0.0, 0.0]
+            try:
+                if self._source_device.mode() == self._source_device.Mode.Output:
+                    sink_device: QAudioDevice | None = self._source_device
+                else:
+                    sink_device = self._config.volume_device
+                if sink_device is not None:
+                    self._sink = QAudioSink(sink_device)
+                    self._sink_io: QIODevice = self._sink.start()
+                    if self._sink_io is None:
+                        self._logger.warning(
+                            self.tr("Failed to start audio sink on device '%s'."),
+                            sink_device.description(),
+                        )
+                        del self._sink_io
+                    else:
+                        self._silent_chunk = (
+                            b"\x80" * self._sink.bufferSize()
+                            if self._sink.format().sampleFormat()
+                            == QAudioFormat.SampleFormat.UInt8
+                            else bytes(self._sink.bufferSize())
+                        )
+                        self._sink_io.write(self._silent_chunk)
+                for index, fmt in zip(
+                    (self._left_index, self._right_index),
                     (self._left_fmt, self._right_fmt),
-                    (self._config.left_latency_ms, self._config.right_latency_ms),
-                    (self._left_sink, self._right_sink),
+                ):
+                    with self._pyaudio.open(
+                        format=fmt.pa_format,
+                        channels=fmt.channels,
+                        rate=fmt.rate,
+                        output=True,
+                        output_device_index=index,
+                        frames_per_buffer=0,
+                    ) as stream:
+                        buffer_time_ms: int = (
+                            stream.get_write_available() * 1000 + fmt.rate * 2 - 1
+                        ) // (fmt.rate * 2)
+                    self._output_buffer_time_ms = max(
+                        self._output_buffer_time_ms,
+                        buffer_time_ms,
+                    )
+                self._logger.info(
+                    self.tr(
+                        "Output buffer time is automatically set %d ms based on "
+                        "the device minimum"
+                    ),
+                    self._output_buffer_time_ms,
                 )
-            ):
-                pts: FilterContext = graph.add(filter="asetpts", expr="PTS")
-                resample: FilterContext = graph.add(
-                    filter="aresample",
-                    args=(
-                        "ichl=mono:first_pts=0:min_hard_comp="
-                        f"{(self._left_target, self._right_target)[index] / target.rate / 2}"
-                        ":async="
-                        f"{(self._left_target, self._right_target)[index] * self._source_fmt.rate / target.rate}"
+                self._left_stream = self._pyaudio.open(
+                    format=self._left_fmt.pa_format,
+                    channels=self._left_fmt.channels,
+                    rate=self._left_fmt.rate,
+                    output=True,
+                    output_device_index=self._left_index,
+                    start=False,
+                    frames_per_buffer=(
+                        self._left_fmt.rate
+                        * (self._config.left_latency_ms + self._output_buffer_time_ms)
+                        // 1000
                     ),
                 )
-                format: FilterContext = graph.add(
+                self._right_stream = self._pyaudio.open(
+                    format=self._right_fmt.pa_format,
+                    channels=self._right_fmt.channels,
+                    rate=self._right_fmt.rate,
+                    output=True,
+                    output_device_index=self._right_index,
+                    start=False,
+                    frames_per_buffer=(
+                        self._right_fmt.rate
+                        * (self._config.right_latency_ms + self._output_buffer_time_ms)
+                        // 1000
+                    ),
+                )
+                self._left_target: int = (
+                    self._left_fmt.rate
+                    * (self._config.left_latency_ms + self._output_buffer_time_ms)
+                    // 1000
+                )
+                self._right_target: int = (
+                    self._right_fmt.rate
+                    * (self._config.right_latency_ms + self._output_buffer_time_ms)
+                    // 1000
+                )
+                self._conn: QMetaObject.Connection = self._ready_read.connect(
+                    self._on_ready_read
+                )
+                graph: Graph = Graph()
+                self._input: FilterContext = graph.add_abuffer(
+                    sample_rate=self._source_fmt.rate,
+                    format=self._source_fmt.format,
+                    layout=self._source_fmt.layout,
+                    time_base=Fraction(numerator=1, denominator=self._source_fmt.rate),
+                )
+                mix: FilterContext = graph.add(
                     filter="aformat",
-                    sample_rates=str(object=target.rate),
-                    sample_fmts=target.format.name,
-                    channel_layouts=target.layout.name,
+                    sample_rates=str(object=self._source_fmt.rate),
+                    sample_fmts=self._source_fmt.format.planar.name,
+                    channel_layouts="stereo",
                 )
-                if latency > 0:
-                    delay: FilterContext = graph.add(
-                        filter="adelay",
-                        delays=str(object=latency),
-                        all="1",
+                splitter: FilterContext = graph.add(
+                    filter="channelsplit", args="channel_layout=stereo"
+                )
+                self._input.link_to(input_=mix)
+                mix.link_to(input_=splitter)
+                self._left_sink: FilterContext = graph.add(filter="abuffersink")
+                self._right_sink: FilterContext = graph.add(filter="abuffersink")
+                self._pts_filters: list[FilterContext] = []
+                for index, (target, sink) in enumerate(
+                    iterable=zip(
+                        (self._left_fmt, self._right_fmt),
+                        (self._left_sink, self._right_sink),
                     )
-                    splitter.link_to(input_=delay, output_idx=index, input_idx=0)
-                    delay.link_to(input_=pts)
-                else:
+                ):
+                    pts: FilterContext = graph.add(filter="asetpts", expr="PTS")
+                    resample: FilterContext = graph.add(
+                        filter="aresample",
+                        args=(
+                            "ichl=mono:first_pts=0:min_hard_comp="
+                            f"{(self._left_target, self._right_target)[index] / target.rate / 2}"
+                            ":async="
+                            f"{(self._left_target, self._right_target)[index] * self._source_fmt.rate / target.rate}"
+                        ),
+                    )
+                    format: FilterContext = graph.add(
+                        filter="aformat",
+                        sample_rates=str(object=target.rate),
+                        sample_fmts=target.format.name,
+                        channel_layouts=target.layout.name,
+                    )
                     splitter.link_to(input_=pts, output_idx=index, input_idx=0)
-                pts.link_to(input_=resample)
-                self._pts_filters.append(pts)
-                volume: FilterContext = graph.add(filter="volume")
-                resample.link_to(input_=format)
-                format.link_to(input_=volume)
-                volume.link_to(input_=sink)
-                if self._volumes[index] is not None:
-                    self.volume.disconnect(self._volumes[index])
-                self._volumes[index] = self.volume.connect(
-                    lambda gain, volume=volume: volume.process_command(
-                        cmd="volume", arg=str(object=gain)
+                    pts.link_to(input_=resample)
+                    self._pts_filters.append(pts)
+                    volume: FilterContext = graph.add(filter="volume")
+                    resample.link_to(input_=format)
+                    format.link_to(input_=volume)
+                    volume.link_to(input_=sink)
+                    if self._volumes[index] is not None:
+                        self.volume.disconnect(self._volumes[index])
+                    self._volumes[index] = self.volume.connect(
+                        lambda gain, volume=volume: volume.process_command(
+                            cmd="volume", arg=str(object=gain)
+                        )
                     )
+                graph.configure()
+                self._source_stream = self._pyaudio.open(
+                    format=self._source_fmt.pa_format,
+                    channels=self._source_fmt.channels,
+                    rate=self._source_fmt.rate,
+                    input=True,
+                    input_device_index=self._source_index,
+                    start=False,
+                    stream_callback=lambda data, frame_count, time_info, status: (
+                        self._ready_read.emit(data, frame_count, time_info, status),
+                        None,
+                        paContinue,
+                    )[-2:],
+                    frames_per_buffer=(
+                        max(
+                            self._output_buffer_time_ms,
+                            min(
+                                self._config.left_latency_ms,
+                                self._config.right_latency_ms,
+                                10,
+                            ),
+                        )
+                        * self._source_fmt.rate
+                        * 2
+                        + 2999
+                    )
+                    // 3000,
                 )
-            graph.configure()
-            self._source_stream = self._pyaudio.open(
-                format=self._source_fmt.pa_format,
-                channels=self._source_fmt.channels,
-                rate=self._source_fmt.rate,
-                input=True,
-                input_device_index=self._source_index,
-                stream_callback=lambda data, frame_count, time_info, status: (
-                    self._ready_read.emit(data, frame_count, time_info, status),
-                    None,
-                    paContinue,
-                )[-2:],
-                frames_per_buffer=(
-                    self._source_fmt.rate * self._config.source_buffer_time_ms // 1000
-                ),
-            )
-        except AttributeError as e:
-            if e.name is not None:
-                raise RuntimeError(
-                    self.tr("Device not found: ") + e.name.split(sep="_")[1]
-                ) from e
+                self._left_stream.start_stream()
+                self._right_stream.start_stream()
+                self._left_capacity: int = self._left_stream.get_write_available()
+                self._right_capacity: int = self._right_stream.get_write_available()
+                self._source_stream.start_stream()
+                self._left_stream.write(
+                    b"\x80" * self._left_target * self._left_fmt.channels * 2
+                    if self._left_fmt.pa_format == paUInt8
+                    else bytes(self._left_target * self._left_fmt.bpf * 2)
+                )
+                self._right_stream.write(
+                    b"\x80" * self._right_target * self._right_fmt.channels * 2
+                    if self._right_fmt.pa_format == paUInt8
+                    else bytes(self._right_target * self._right_fmt.bpf * 2)
+                )
+            except AttributeError as e:
+                if e.name is not None:
+                    raise RuntimeError(
+                        self.tr("Device not found: ") + e.name.split(sep="_")[1]
+                    ) from e
+                raise
+        except BaseException as e:
+            self.__exit__(type(e), e, e.__traceback__)
             raise
 
     @Slot(object, int, dict, int)
@@ -434,8 +448,14 @@ class Split(QObject):
                     (target - backlog)
                     * self._source_fmt.rate
                     / format.rate
-                    * self._GAIN
+                    * 0.01
                 )
+                if self._pts == frame_count:
+                    stream.write(
+                        b"\x80" * max(0, target - backlog) * format.channels
+                        if format.pa_format == paUInt8
+                        else bytes(max(0, target - backlog) * format.bpf)
+                    )
                 while True:
                     try:
                         output: AudioFrame = cast(AudioFrame, sink.pull())
@@ -453,6 +473,8 @@ class Split(QObject):
                 self._logger.warning(msg="Capture overflow, samples discarded.")
             if status & paInputUnderflow:
                 self._logger.warning(msg="Capture underflow, silence inserted.")
+            if hasattr(self, "_sink_io"):
+                self._sink_io.write(self._silent_chunk)
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
