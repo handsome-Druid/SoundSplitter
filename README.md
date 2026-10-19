@@ -140,7 +140,9 @@ uv run pyside6-lrelease translations\setup\zh_CN.ts -qm translations\setup\zh_CN
 uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\uninstall -ts translations\uninstall\zh_CN.ts
 uv run pyside6-lrelease translations\uninstall\zh_CN.ts -qm translations\uninstall\zh_CN.qm
 
-uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts
+uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts src\launcher.py
 ```
 
-The resulting installer is `build\setup.exe`. Generated UI/resource modules and compiled translations are ignored by Git, so regenerate them before building from a fresh checkout.
+The resulting installer is `build\setup.exe`. The launcher runs the application when named `SoundSplitter.exe`, runs the uninstaller when named `uninstall.exe`, and opens the installer for all other names. You can rename the release installer, for example to `SoundSplitter-v2.0.0b1-amd64.exe`.
+
+Generated UI/resource modules and compiled translations are ignored by Git, so regenerate them before building from a fresh checkout.

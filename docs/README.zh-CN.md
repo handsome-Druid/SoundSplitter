@@ -140,7 +140,9 @@ uv run pyside6-lrelease translations\setup\zh_CN.ts -qm translations\setup\zh_CN
 uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\uninstall -ts translations\uninstall\zh_CN.ts
 uv run pyside6-lrelease translations\uninstall\zh_CN.ts -qm translations\uninstall\zh_CN.qm
 
-uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --main-entry-point=soundsplitter=SoundSplitter:main --main-entry-point=setup=setup:main --main-entry-point=uninstall=uninstall:main --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts
+uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts src\launcher.py
 ```
 
-生成的安装程序位于 `build\setup.exe`。生成的界面／资源模块和编译后的翻译文件被 Git 忽略，因此从全新检出的仓库构建前需要重新生成。
+生成的安装程序位于 `build\setup.exe`。启动器在文件名为 `SoundSplitter.exe` 时运行主程序，为 `uninstall.exe` 时运行卸载器，其他名称均打开安装器。因此可以为发布的安装包改名，例如 `SoundSplitter-v2.0.0b1-amd64.exe`。
+
+生成的界面／资源模块和编译后的翻译文件被 Git 忽略，因此从全新检出的仓库构建前需要重新生成。
