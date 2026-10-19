@@ -202,10 +202,14 @@ class Split(QObject):
                 self._left_sink: FilterContext = graph.add(filter="abuffersink")
                 self._right_sink: FilterContext = graph.add(filter="abuffersink")
                 self._pts_filters: list[FilterContext] = []
-                for index, (target, sink) in enumerate(
+                for index, (target, sink, samples) in enumerate(
                     iterable=zip(
                         (self._left_fmt, self._right_fmt),
                         (self._left_sink, self._right_sink),
+                        (
+                            self._left_target,
+                            self._right_target,
+                        ),
                     )
                 ):
                     pts: FilterContext = graph.add(filter="asetpts", expr="PTS")
@@ -218,6 +222,11 @@ class Split(QObject):
                             f"{(self._left_target, self._right_target)[index] * self._source_fmt.rate / target.rate}"
                         ),
                     )
+                    delay: FilterContext = graph.add(
+                        filter="adelay",
+                        delays=f"{samples}S",
+                        all="1",
+                    )
                     format: FilterContext = graph.add(
                         filter="aformat",
                         sample_rates=str(object=target.rate),
@@ -228,7 +237,8 @@ class Split(QObject):
                     pts.link_to(input_=resample)
                     self._pts_filters.append(pts)
                     volume: FilterContext = graph.add(filter="volume")
-                    resample.link_to(input_=format)
+                    resample.link_to(input_=delay)
+                    delay.link_to(input_=format)
                     format.link_to(input_=volume)
                     volume.link_to(input_=sink)
                     self.volume.connect(
@@ -428,12 +438,6 @@ class Split(QObject):
                 self._debts[index] += (
                     (target - backlog) * self._source_fmt.rate / format.rate * 0.01
                 )
-                if self._pts == frame_count:
-                    stream.write(
-                        b"\x80" * max(0, target - backlog) * format.channels
-                        if format.pa_format == paUInt8
-                        else bytes(max(0, target - backlog) * format.bpf)
-                    )
                 while True:
                     try:
                         output: AudioFrame = cast(AudioFrame, sink.pull())
