@@ -217,9 +217,9 @@ class Split(QObject):
                         filter="aresample",
                         args=(
                             "ichl=mono:first_pts=0:min_hard_comp="
-                            f"{(self._left_target, self._right_target)[index] / target.rate / 2}"
+                            f"{samples / target.rate / 2}"
                             ":async="
-                            f"{(self._left_target, self._right_target)[index] * self._source_fmt.rate / target.rate}"
+                            f"{samples * self._source_fmt.rate / target.rate}"
                         ),
                     )
                     delay: FilterContext = graph.add(
