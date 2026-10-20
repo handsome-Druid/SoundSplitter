@@ -1,10 +1,18 @@
+from sys import platform
 from typing import ClassVar, override
 
 from pydantic import ConfigDict, ValidationError
 from pydantic_yaml import (
     to_yaml_file,  # pyright: ignore[reportUnknownVariableType]
 )
-from PySide6.QtCore import QCoreApplication, QDir, QFile, QFileInfo, QProcessEnvironment
+from PySide6.QtCore import (
+    QCoreApplication,
+    QDir,
+    QFile,
+    QFileInfo,
+    QProcessEnvironment,
+    QStandardPaths,
+)
 from PySide6.QtMultimedia import QAudioDevice, QMediaDevices
 from PySide6.QtWidgets import QApplication
 
@@ -103,11 +111,16 @@ class Config(V2):
                     )
         app: QCoreApplication | None = QApplication.instance()
         assert app is not None
-        path: str = (
-            QProcessEnvironment.systemEnvironment().value("PROGRAMDATA")
-            + "/"
-            + app.applicationName()
-        )
+        if platform == "win32":
+            path: str = (
+                QProcessEnvironment.systemEnvironment().value("PROGRAMDATA")
+                + "/"
+                + app.applicationName()
+            )
+        else:
+            path = QStandardPaths.writableLocation(
+                QStandardPaths.StandardLocation.AppLocalDataLocation
+            )
         if not QDir().mkpath(path):
             raise OSError(
                 Config.tr(

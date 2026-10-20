@@ -1,15 +1,6 @@
-from ctypes import (
-    POINTER,
-    FormatError,
-    WinDLL,
-    byref,
-    c_bool,
-    c_ulong,
-    c_void_p,
-    c_wchar_p,
-    get_last_error,
-)
+#  pyright: reportAttributeAccessIssue=false
 from logging import Logger, getLogger
+from sys import platform
 from types import TracebackType
 from typing import Self, override
 
@@ -19,7 +10,6 @@ from PySide6.QtCore import (
     QObject,
     Qt,
     QThread,
-    QTimer,
     Signal,
     Slot,
 )
@@ -35,40 +25,111 @@ class Start(QObject):
     _exit_split = Signal(object, object, object)
 
     class _Thread(QThread):
-        runned = Signal(object, object, object)
+        if platform == "win32":
 
-        @override
-        def run(self) -> None:
-            avrt = WinDLL(name="avrt", use_last_error=True)
-            avrt.AvSetMmThreadCharacteristicsW.restype = c_void_p
-            avrt.AvSetMmThreadCharacteristicsW.argtypes = [
-                c_wchar_p,
-                POINTER(cls=c_ulong),
-            ]
-            handle: int | None = avrt.AvSetMmThreadCharacteristicsW(
-                "Pro Audio", byref(c_ulong())
-            )
-            if handle is None:
-                error_code: int = get_last_error()
-                Split._logger.warning(
-                    self.tr(
-                        "MMCSS registration failed (Windows error %s: %s); "
-                        "the thread will run at normal priority"
-                    ),
-                    error_code,
-                    FormatError(error_code).strip(),
+            @override
+            def run(self) -> None:
+                from ctypes import (
+                    POINTER,
+                    FormatError,
+                    WinDLL,
+                    byref,
+                    c_bool,
+                    c_ulong,
+                    c_void_p,
+                    c_wchar_p,
+                    get_last_error,
                 )
-                self._handle = None
-            else:
-                self._handle = c_void_p(handle)
-            try:
-                QTimer.singleShot(0, lambda: self.runned.emit(None, None, None))
+
+                avrt = WinDLL(name="avrt", use_last_error=True)
+                avrt.AvSetMmThreadCharacteristicsW.restype = c_void_p
+                avrt.AvSetMmThreadCharacteristicsW.argtypes = [
+                    c_wchar_p,
+                    POINTER(cls=c_ulong),
+                ]
+                handle: int | None = avrt.AvSetMmThreadCharacteristicsW(
+                    "Pro Audio", byref(c_ulong())
+                )
+                if handle is None:
+                    error_code: int = get_last_error()
+                    Split._logger.warning(
+                        self.tr(
+                            "MMCSS registration failed (Windows error %s: %s); "
+                            "the thread will run at normal priority"
+                        ),
+                        error_code,
+                        FormatError(error_code).strip(),
+                    )
+                try:
+                    super().run()
+                finally:
+                    if handle is not None:
+                        avrt.AvRevertMmThreadCharacteristics.restype = c_bool
+                        avrt.AvRevertMmThreadCharacteristics.argtypes = [c_void_p]
+                        avrt.AvRevertMmThreadCharacteristics(c_void_p(handle))
+        elif platform == "linux":
+
+            @override
+            def run(self) -> None:
+                from resource import (
+                    RLIM_INFINITY,
+                    RLIMIT_RTTIME,
+                    getrlimit,
+                    setrlimit,
+                )
+                from threading import get_native_id
+
+                from PySide6.QtDBus import (
+                    QDBusConnection,
+                    QDBusInterface,
+                    QDBusMessage,
+                    QDBusVariant,
+                )
+
+                service = "org.freedesktop.RealtimeKit1"
+                path = "/org/freedesktop/RealtimeKit1"
+                bus: QDBusConnection = QDBusConnection.systemBus()
+                properties = QDBusInterface(
+                    service,
+                    path,
+                    interface="org.freedesktop.DBus.Properties",
+                    connection=bus,
+                )
+                reply: QDBusMessage = properties.call("Get", service, "RTTimeUSecMax")
+                error: str | None = None
+                if reply.type() == QDBusMessage.MessageType.ErrorMessage:
+                    error = reply.errorMessage()
+                else:
+                    value = reply.arguments()[0]
+                    if isinstance(value, QDBusVariant):
+                        value = value.variant()
+                    maximum = int(value)
+                    soft, hard = getrlimit(RLIMIT_RTTIME)
+                    limit: int = (
+                        maximum if soft == RLIM_INFINITY else min(soft, maximum)
+                    )
+                    hard_limit: int = (
+                        maximum if hard == RLIM_INFINITY else min(hard, maximum)
+                    )
+                    try:
+                        setrlimit(RLIMIT_RTTIME, (min(limit, hard_limit), hard_limit))
+                    except (OSError, ValueError) as exc:
+                        error = str(object=exc)
+                    else:
+                        rtkit = QDBusInterface(
+                            service, path, interface=service, connection=bus
+                        )
+                        reply = rtkit.call("MakeThreadRealtime", get_native_id(), 5)
+                        if reply.type() == QDBusMessage.MessageType.ErrorMessage:
+                            error = reply.errorMessage()
+                if error is not None:
+                    Start._logger.warning(
+                        "RTKit realtime scheduling failed; "
+                        "the audio thread will run at normal priority: %s",
+                        error,
+                    )
+
                 super().run()
-            finally:
-                if self._handle is not None:
-                    avrt.AvRevertMmThreadCharacteristics.restype = c_bool
-                    avrt.AvRevertMmThreadCharacteristics.argtypes = [c_void_p]
-                    avrt.AvRevertMmThreadCharacteristics(self._handle)
 
     @override
     def __init__(self, config: Config) -> None:
@@ -76,6 +137,10 @@ class Start(QObject):
         self._config: Config = config
         self._mutex = QMutex()
         self._thread = self._Thread(parent=self)
+        if platform == "linux":
+            from SoundSplitter.external import ALSA
+
+            self._alsa = ALSA()
 
     def __enter__(self) -> Self:
         return self
@@ -92,7 +157,7 @@ class Start(QObject):
         try:
             self._thread.requestInterruption()
             if hasattr(self, "_thread_conn"):
-                self._thread.runned.disconnect(self._thread_conn)
+                self._thread.started.disconnect(self._thread_conn)
                 del self._thread_conn
             try:
                 if hasattr(self, "_split") and isValid(self._split):
@@ -116,6 +181,8 @@ class Start(QObject):
                         self._volume.__exit__(exc_type, exc, tb)
                     finally:
                         self._volume.deleteLater()
+                if hasattr(self, "_alsa"):
+                    self._alsa.__exit__(exc_type, exc, tb)
         finally:
             self._mutex.unlock()
             if is_running:
@@ -139,6 +206,16 @@ class Start(QObject):
                 raise RuntimeError(
                     self.tr("Previous shutdown cleanup is incomplete; retrying cleanup")
                 )
+            if hasattr(self, "_alsa"):
+                if self._config.left is None:
+                    raise RuntimeError(self.tr("No left channel output selected"))
+                if self._config.right is None:
+                    raise RuntimeError(self.tr("No right channel output selected"))
+                if self._config.source is None:
+                    raise RuntimeError(self.tr("No audio input source selected"))
+                self._alsa(self._config.left)
+                self._alsa(self._config.right)
+                self._alsa(self._config.source)
             self._split = Split(self._config)
             self._split_conn: QMetaObject.Connection = self._split.finished.connect(
                 self.__exit__
@@ -147,7 +224,7 @@ class Start(QObject):
                 self._split.__exit__, type=Qt.ConnectionType.QueuedConnection
             )
             self._split.moveToThread(self._thread)
-            self._thread_conn: QMetaObject.Connection = self._thread.runned.connect(
+            self._thread_conn: QMetaObject.Connection = self._thread.started.connect(
                 lambda: self._split(None, None, None),
                 type=Qt.ConnectionType.DirectConnection,
             )

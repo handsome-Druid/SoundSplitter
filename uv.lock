@@ -12,6 +12,35 @@ wheels = [
 ]
 
 [[package]]
+name = "ashka"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dishka" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/56/e8417283539097f6344586b3a58e76bd930227d4eeca8365e255fe262710/ashka-1.0.0.tar.gz", hash = "sha256:58c962486628b19ca61a2cbc84a5e93beaa219e1c8fa822b5d769ce052e3aa14", size = 6959, upload-time = "2026-09-17T07:22:33.497Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c2/c7/d7b69c0865828bacba1fb3a4e78e9a0a05e2ebbf930c8896a0a3b290324a/ashka-1.0.0-py3-none-any.whl", hash = "sha256:dca498536496eefd444cff67f5377d077a05c459b764dec4f77306da63551a1a", size = 15940, upload-time = "2026-09-17T07:22:32.249Z" },
+]
+
+[package.optional-dependencies]
+lifecycle = [
+    { name = "ashka-lifecycle" },
+]
+
+[[package]]
+name = "ashka-lifecycle"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dishka" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c2/1d/8f3b80d5e01d4805d6816e06f4ff975bc8e90b741456fcf33fa5c609471c/ashka_lifecycle-1.0.1.tar.gz", hash = "sha256:b3e9f423379799b13caee6545b892676576a64e62234bf85486431956309d47c", size = 5002, upload-time = "2026-10-20T04:47:50.861Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/5e/fc838e4d57fae5a18984d57409ceea0166ce2ddff0071f835fa480b02791/ashka_lifecycle-1.0.1-py3-none-any.whl", hash = "sha256:45cac3106e59d7f9791fb49cd0e83ec0a6de6ebc2adb689fa0159098b1d212b1", size = 7352, upload-time = "2026-10-20T04:47:49.552Z" },
+]
+
+[[package]]
 name = "av"
 version = "19.0.1"
 source = { registry = "https://pypi.org/simple" }
@@ -486,8 +515,9 @@ wheels = [
 name = "soundsplitter"
 source = { editable = "." }
 dependencies = [
+    { name = "ashka", extra = ["lifecycle"] },
     { name = "av" },
-    { name = "comtypes" },
+    { name = "comtypes", marker = "sys_platform == 'win32'" },
     { name = "dishka" },
     { name = "numpy" },
     { name = "pyaudio", marker = "sys_platform != 'win32'" },
@@ -511,8 +541,9 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ashka", extras = ["lifecycle"], specifier = ">=1.0.0" },
     { name = "av", specifier = ">=19.0.0" },
-    { name = "comtypes", specifier = ">=1.4.17" },
+    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4.17" },
     { name = "dishka", specifier = ">=1.10.1" },
     { name = "numpy", specifier = ">=2.5.4" },
     { name = "pyaudio", marker = "sys_platform != 'win32'", specifier = ">=0.2.14" },

@@ -1,8 +1,9 @@
 from collections.abc import Callable, Collection
-from ctypes import windll
-from sys import argv, exit, modules
+from configparser import ConfigParser
+from io import StringIO
+from sys import argv, exit, modules, platform
 from types import TracebackType
-from typing import NoReturn, Protocol, cast
+from typing import NoReturn, Protocol, Self, cast
 
 import pydantic._internal._validators  # noqa: F401
 from pydantic import ValidationError
@@ -10,15 +11,19 @@ from PySide6.QtCore import (
     QCoreApplication,
     QDir,
     QEvent,
+    QFile,
+    QIODevice,
     QLibraryInfo,
     QLocale,
     QLockFile,
     QObject,
     QPoint,
     QRect,
+    QSaveFile,
     QSettings,
     QSignalBlocker,
     QSize,
+    QStandardPaths,
     Qt,
     QTimer,
     QTranslator,
@@ -55,6 +60,7 @@ class APP:
     class _DI(Protocol):
         def get[T](self, _: type[T], /) -> T: ...
         def close(self): ...
+        def __enter__(self) -> Self: ...
 
     def __call__(self) -> NoReturn:
         if not self._hide:
@@ -123,6 +129,7 @@ class APP:
                             "Could not create the single-instance lock. Check the directory permissions."
                         )
                     )
+            self._di.__enter__()
             self._start: Start = self._di.get(Start)
             self._volume = Volume(parent=self._window)
             self._app.aboutToQuit.connect(
@@ -209,21 +216,35 @@ class APP:
             self._window.closeEvent = closeEvent
             self._startup_command: str = '"' + argv[0] + '" --hide'
             if "__compiled__" in globals():
-                self._settings = QSettings(
-                    r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run",
-                    QSettings.Format.NativeFormat,
-                )
-                if self._settings.contains(self._app.applicationName()):
-                    self._ui.startupCheckBox.setChecked(True)
-                    if (
-                        self._settings.value(self._app.applicationName())
-                        != self._startup_command
-                    ):
-                        self._settings.setValue(
-                            self._app.applicationName(), self._startup_command
+                if platform == "win32":
+                    self._settings = QSettings(
+                        r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run",
+                        QSettings.Format.NativeFormat,
+                    )
+                    if self._settings.contains(self._app.applicationName()):
+                        self._ui.startupCheckBox.setChecked(True)
+                        if (
+                            self._settings.value(self._app.applicationName())
+                            != self._startup_command
+                        ):
+                            self._settings.setValue(
+                                self._app.applicationName(), self._startup_command
+                            )
+                    else:
+                        self._ui.startupCheckBox.setChecked(False)
+                if platform == "linux":
+                    directory = QDir(
+                        QStandardPaths.writableLocation(
+                            QStandardPaths.StandardLocation.ConfigLocation
                         )
-                else:
-                    self._ui.startupCheckBox.setChecked(False)
+                    )
+                    if not directory.mkpath("autostart"):
+                        raise OSError("Cannot create autostart directory")
+                    self._startup_file = QFile(
+                        directory.absoluteFilePath("autostart/SoundSplitter.desktop")
+                    )
+                    if self._startup_file.exists():
+                        self._ui.startupCheckBox.setChecked(True)
                 self._ui.startupCheckBox.checkStateChanged.connect(
                     self._on_startup_check_box_check_state_changed
                 )
@@ -429,13 +450,13 @@ class APP:
             self._ui.loopbackCheckBox.toggled.connect(
                 self._on_loopback_check_box_toggled
             )
-            self._ui.audioCheckBox.setChecked(False)
-            self._ui.audioCheckBox.checkStateChanged.connect(
+            self._ui.monitorCheckBox.setChecked(False)
+            self._ui.monitorCheckBox.checkStateChanged.connect(
                 self._on_check_box_check_state_changed
             )
             if self._config.volume_device is not None:
                 assert self._config.volume is not None
-                self._ui.audioCheckBox.setChecked(True)
+                self._ui.monitorCheckBox.setChecked(True)
                 self._ui.audioOutputComboBox.addItem(
                     self._config.volume, userData=self._config.volume_device
                 )
@@ -466,17 +487,17 @@ class APP:
                             self.tr("Audio input source selected:")
                         )
                         self._ui.sourceLabel.setStyleSheet("color: rgb(40, 167, 69)")
-                        self._config.source_device = device
+                        self._config.volume_device = self._config.source_device = device
                         break
             if (
                 self._config.source is not None
-                and not self._ui.audioCheckBox.isChecked()
+                and not self._ui.monitorCheckBox.isChecked()
                 and "CABLE Output" in self._config.source
             ):
                 for device in self._mediadevices.audioOutputs():
                     description: str = device.description()
                     if "CABLE Input" in device.description():
-                        self._ui.audioCheckBox.setChecked(True)
+                        self._ui.monitorCheckBox.setChecked(True)
                         self._config.volume_device = device
                         break
             self._ui.refreshPushButton.click()
@@ -489,11 +510,30 @@ class APP:
             self._server.newConnection.connect(self._on_new_connection)
             if not self._server.listen(self._app.applicationName()):
                 raise RuntimeError(self._server.errorString())
-            if windll.shell32.IsUserAnAdmin():
-                self._pending_msg: list[str] = getattr(self, "_pending_msg", [])
-                self._pending_msg.append(
-                    self.tr("Do not run SoundSplitter as administrator.")
-                )
+            if platform == "win32":
+                from ctypes import windll
+
+                if windll.shell32.IsUserAnAdmin():
+                    self._pending_msg: list[str] = getattr(self, "_pending_msg", [])
+                    self._pending_msg.append(
+                        self.tr("Do not run SoundSplitter as administrator.")
+                    )
+                else:
+                    self._ui.startPushButton.click()
+            elif platform == "linux":
+                self._ui.loopbackCheckBox.setChecked(True)
+                self._ui.loopbackCheckBox.setEnabled(False)
+                self._ui.audioInputComboBox.clear()
+                for device in QMediaDevices.audioOutputs():
+                    if device.description() == "CABLE Input (SoundSplitter)":
+                        self._config.source_device = device
+                        self._ui.audioInputComboBox.addItem(
+                            device.description(), userData=device
+                        )
+                        self._ui.audioInputComboBox.setCurrentIndex(0)
+                        break
+                self._ui.audioInputComboBox.setEnabled(False)
+                self._ui.startPushButton.click()
             else:
                 self._ui.startPushButton.click()
         except BaseException as e:
@@ -519,18 +559,19 @@ class APP:
         self._ui.rightListWidget.setEnabled(True)
         self._ui.leftSpinBox.setEnabled(True)
         self._ui.rightSpinBox.setEnabled(True)
-        self._ui.audioInputComboBox.setEnabled(True)
-        if self._ui.loopbackCheckBox.isChecked():
-            self._ui.audioCheckBox.setEnabled(False)
-        else:
-            self._ui.audioCheckBox.setEnabled(True)
-            if self._ui.audioCheckBox.isChecked():
-                self._ui.audioOutputComboBox.setEnabled(True)
+        if platform == "win32":
+            self._ui.audioInputComboBox.setEnabled(True)
+            if self._ui.loopbackCheckBox.isChecked():
+                self._ui.monitorCheckBox.setEnabled(False)
             else:
-                self._ui.audioOutputComboBox.setEnabled(False)
+                self._ui.monitorCheckBox.setEnabled(True)
+                if self._ui.monitorCheckBox.isChecked():
+                    self._ui.audioOutputComboBox.setEnabled(True)
+                else:
+                    self._ui.audioOutputComboBox.setEnabled(False)
+            self._ui.loopbackCheckBox.setEnabled(True)
         self._ui.stopPushButton.setEnabled(False)
         self._start_action.setEnabled(True)
-        self._ui.loopbackCheckBox.setEnabled(True)
         self._stop_action.setEnabled(False)
         if exc_type is not None:
             if self._window.isVisible():
@@ -566,13 +607,14 @@ class APP:
         self._ui.rightListWidget.setEnabled(False)
         self._ui.leftSpinBox.setEnabled(False)
         self._ui.rightSpinBox.setEnabled(False)
-        self._ui.audioInputComboBox.setEnabled(False)
-        self._ui.audioOutputComboBox.setEnabled(False)
-        self._ui.audioCheckBox.setEnabled(False)
+        if platform == "win32":
+            self._ui.audioInputComboBox.setEnabled(False)
+            self._ui.audioOutputComboBox.setEnabled(False)
+            self._ui.monitorCheckBox.setEnabled(False)
+            self._ui.loopbackCheckBox.setEnabled(False)
         self._ui.stopPushButton.setEnabled(True)
         self._start_action.setEnabled(False)
         self._stop_action.setEnabled(True)
-        self._ui.loopbackCheckBox.setEnabled(False)
         self._started = True
 
     @Slot()
@@ -608,7 +650,7 @@ class APP:
             for device in self._mediadevices.audioOutputs():
                 if "CABLE Input" in device.description():
                     self._config.volume_device = device
-                    self._ui.audioCheckBox.setChecked(True)
+                    self._ui.monitorCheckBox.setChecked(True)
                     self._ui.audioOutputComboBox.clear()
                     self._ui.audioOutputComboBox.addItem(
                         device.description(), userData=device
@@ -840,9 +882,53 @@ class APP:
     @Slot(Qt.CheckState)
     def _on_startup_check_box_check_state_changed(self, state: Qt.CheckState) -> None:
         if state == Qt.CheckState.Checked:
-            self._settings.setValue(self._app.applicationName(), self._startup_command)
+            if platform == "win32":
+                self._settings.setValue(
+                    self._app.applicationName(), self._startup_command
+                )
+            if platform == "linux":
+                directory = QDir(
+                    path=QStandardPaths.writableLocation(
+                        QStandardPaths.StandardLocation.ConfigLocation
+                    )
+                )
+                if not directory.mkpath("autostart"):
+                    raise OSError("Cannot create autostart directory")
+
+                executable: str = QCoreApplication.applicationFilePath()
+                executable: str = (
+                    executable.replace("\\", "\\\\\\\\")
+                    .replace('"', '\\\\"')
+                    .replace("`", "\\\\`")
+                    .replace("$", "\\\\$")
+                    .replace("%", "%%")
+                )
+                settings = ConfigParser(interpolation=None)
+                settings.optionxform = lambda optionstr: optionstr
+                settings["Desktop Entry"] = {
+                    "Type": "Application",
+                    "Name": "SoundSplitter",
+                    "Exec": f'"{executable}" --hide',
+                    "Terminal": "false",
+                }
+                with StringIO() as buffer:
+                    settings.write(fp=buffer, space_around_delimiters=False)
+                    content: bytes = buffer.getvalue().encode()
+                file = QSaveFile(self._startup_file.fileName())
+                if not file.open(QIODevice.OpenModeFlag.WriteOnly):
+                    raise OSError(file.errorString())
+                if file.write(content) != len(content):
+                    error: str = file.errorString()
+                    file.cancelWriting()
+                    raise OSError(error)
+                if not file.commit():
+                    raise OSError(file.errorString())
         else:
-            self._settings.remove(self._app.applicationName())
+            if platform == "win32":
+                self._settings.remove(self._app.applicationName())
+            if platform == "linux":
+                if self._startup_file.exists() and not self._startup_file.remove():
+                    raise OSError(self._startup_file.errorString())
 
     @Slot(int)
     def _on_left_spin_box_value_changed(self, value: int) -> None:
@@ -1045,7 +1131,7 @@ class APP:
             self._ui.audioInputComboBox.clear()
             self._config.source = None
         if checked:
-            self._ui.audioCheckBox.setChecked(True)
+            self._ui.monitorCheckBox.setChecked(True)
             self._ui.audioOutputComboBox.clear()
             self._ui.audioOutputComboBox.addItem(
                 self._ui.audioInputComboBox.currentText(),
@@ -1054,5 +1140,5 @@ class APP:
                 ),
             )
             self._ui.audioOutputComboBox.setCurrentIndex(0)
-        self._ui.audioCheckBox.setDisabled(checked)
+        self._ui.monitorCheckBox.setDisabled(checked)
         self._ui.audioOutputComboBox.setDisabled(checked)

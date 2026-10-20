@@ -6,8 +6,9 @@ authors = [{ name = "山泥若叶睦" }]
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "ashka[lifecycle]>=1.0.0",
     "av>=19.0.0",
-    "comtypes>=1.4.17",
+    "comtypes>=1.4.17 ; sys_platform == 'win32'",
     "dishka>=1.10.1",
     "numpy>=2.5.4",
     "pyaudio>=0.2.14 ; sys_platform != 'win32'",

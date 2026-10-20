@@ -153,17 +153,21 @@ class Split(QObject):
                     (self._left_index, self._right_index),
                     (self._left_fmt, self._right_fmt),
                 ):
-                    with self._pyaudio.open(
+                    stream = self._pyaudio.open(
                         format=fmt.pa_format,
                         channels=fmt.channels,
                         rate=fmt.rate,
                         output=True,
                         output_device_index=index,
                         frames_per_buffer=0,
-                    ) as stream:
+                    )
+                    try:
                         buffer_time_ms: int = (
                             stream.get_write_available() * 1000 + fmt.rate * 2 - 1
                         ) // (fmt.rate * 2)
+                    finally:
+                        stream.stop_stream()
+                        stream.close()
                     self._output_buffer_time_ms = max(
                         self._output_buffer_time_ms,
                         buffer_time_ms,
@@ -178,9 +182,7 @@ class Split(QObject):
                     * (self._config.right_latency_ms + self._output_buffer_time_ms)
                     // 1000
                 )
-                self._conn: QMetaObject.Connection = self._ready_read.connect(
-                    self._on_ready_read
-                )
+                self._ready_read.connect(self._on_ready_read)
                 graph: Graph = Graph()
                 self._input: FilterContext = graph.add_abuffer(
                     sample_rate=self._source_fmt.rate,
@@ -271,11 +273,8 @@ class Split(QObject):
         is_running: bool = not self._mutex.try_lock()
         try:
             try:
-                if hasattr(self, "_conn"):
-                    self._ready_read.disconnect(self._conn)
-                    del self._conn
                 if hasattr(self, "_sink"):
-                    self._sink.stop()
+                    QMetaObject.invokeMethod(self._sink, "stop")
                     del self._sink
                 if hasattr(self, "_sink_io"):
                     del self._sink_io
