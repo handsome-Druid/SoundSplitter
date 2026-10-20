@@ -37,6 +37,8 @@ class VolumeController(QObject):
             self._subscription.waitForFinished()
         self._device = value
         self._name = None
+        self._volume_percent = 100.0
+        self._mute = False
         if value is not None:
             self._refresh()
             if self._device is not None:

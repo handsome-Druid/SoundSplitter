@@ -66,9 +66,11 @@ class APP:
         if not self._hide:
             self._window.show()
             self._show_action.trigger()
-        else:
+        elif QSystemTrayIcon.isSystemTrayAvailable():
             self._hidden = getattr(self, "_hidden", set())
             self._hidden.add(self._window)
+        else:
+            self._window.showMinimized()
         exit(self._app.exec())
 
     def __init__(
@@ -171,7 +173,10 @@ class APP:
 
             def changeEvent(event: QEvent) -> None:
                 match event.type():
-                    case QEvent.Type.WindowStateChange if self._window.isMinimized():
+                    case QEvent.Type.WindowStateChange if (
+                        self._window.isMinimized()
+                        and QSystemTrayIcon.isSystemTrayAvailable()
+                    ):
                         self._hidden = getattr(self, "_hidden", set())
                         self._hidden.update(
                             widget
@@ -796,6 +801,9 @@ class APP:
 
     @Slot()
     def _on_hide_action_triggered(self) -> None:
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            self._window.showMinimized()
+            return
         self._hidden: set[QWidget] = getattr(self, "_hidden", set())
         self._hidden.update(
             widget

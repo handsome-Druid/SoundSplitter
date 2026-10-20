@@ -8,15 +8,7 @@ from typing import Self
 
 
 class ALSA:
-    """通过 ALSA pulse 插件映射物理端点，兼容 PulseAudio 和 pipewire-pulse。
-
-    需安装 pactl 和 ALSA pulse 插件。输出端的采集方向映射到其 monitor。
-    注册所有设备后再初始化 PyAudio；本模块不刷新已初始化的 ALSA/PortAudio 缓存。
-    音频流及 PyAudio 必须在退出上下文前关闭。配置只影响当前进程及其子进程。
-    """
-
     def __call__(self, name: str, /) -> None:
-        """按唯一 description 注册同名 ALSA PCM，清理后可再次注册。"""
         if self._directory is None:
             self.__init__()
         directions: dict[str, str] = {}
@@ -32,7 +24,7 @@ class ALSA:
                 if endpoint["description"] == name:
                     directions[direction] = endpoint["name"]
                     if kind == "sinks":
-                        directions["capture"] = endpoint["monitor_source_name"]
+                        directions["capture"] = endpoint["monitor_source"]
             if "playback" in directions:
                 break
         if not directions:
@@ -83,7 +75,6 @@ class ALSA:
         tb: TracebackType | None,
         /,
     ) -> None:
-        """恢复原配置并删除本次注册；重复调用不产生额外作用。"""
         if self._directory is None:
             return
         if self._previous_config is None:

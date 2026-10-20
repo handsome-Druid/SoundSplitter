@@ -43,7 +43,7 @@ class DI:
                     "sink_name=soundsplitter_cable_input",
                     "channels=2",
                     "channel_map=front-left,front-right",
-                    'sink_properties=device.description="CABLE Input (SoundSplitter)"',
+                    "sink_properties='device.description=\"CABLE Input (SoundSplitter)\"'",
                 ],
                 check=True,
                 capture_output=True,

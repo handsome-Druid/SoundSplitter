@@ -79,6 +79,7 @@ class Start(QObject):
                 )
                 from threading import get_native_id
 
+                from PySide6.QtCore import Q_ARG
                 from PySide6.QtDBus import (
                     QDBusConnection,
                     QDBusInterface,
@@ -105,23 +106,41 @@ class Start(QObject):
                         value = value.variant()
                     maximum = int(value)
                     soft, hard = getrlimit(RLIMIT_RTTIME)
-                    limit: int = (
-                        maximum if soft == RLIM_INFINITY else min(soft, maximum)
-                    )
-                    hard_limit: int = (
-                        maximum if hard == RLIM_INFINITY else min(hard, maximum)
-                    )
-                    try:
-                        setrlimit(RLIMIT_RTTIME, (min(limit, hard_limit), hard_limit))
-                    except (OSError, ValueError) as exc:
-                        error = str(object=exc)
-                    else:
-                        rtkit = QDBusInterface(
-                            service, path, interface=service, connection=bus
+                    if hard == RLIM_INFINITY or hard > maximum:
+                        error = (
+                            f"RLIMIT_RTTIME hard limit {hard} exceeds RTKit maximum "
+                            f"{maximum}; refusing to lower the hard limit without "
+                            "explicit consent"
                         )
-                        reply = rtkit.call("MakeThreadRealtime", get_native_id(), 5)
-                        if reply.type() == QDBusMessage.MessageType.ErrorMessage:
-                            error = reply.errorMessage()
+                    else:
+                        limit = hard if soft == RLIM_INFINITY else min(soft, hard)
+                        try:
+                            if limit != soft:
+                                setrlimit(RLIMIT_RTTIME, (limit, hard))
+                        except (OSError, ValueError) as exc:
+                            error = str(object=exc)
+                        else:
+                            rtkit = QDBusInterface(
+                                service, path, interface=service, connection=bus
+                            )
+                            if not rtkit.isValid():
+                                error = rtkit.lastError().message()
+                            else:
+                                try:
+                                    invoked = QMetaObject.invokeMethod(
+                                        rtkit,
+                                        "MakeThreadRealtime",
+                                        Qt.ConnectionType.DirectConnection,
+                                        Q_ARG("qulonglong", get_native_id()),
+                                        Q_ARG("uint", 5),
+                                    )
+                                except RuntimeError as exc:
+                                    error = str(object=exc)
+                                else:
+                                    if rtkit.lastError().isValid():
+                                        error = rtkit.lastError().message()
+                                    elif not invoked:
+                                        error = "Could not invoke MakeThreadRealtime"
                 if error is not None:
                     Start._logger.warning(
                         "RTKit realtime scheduling failed; "
