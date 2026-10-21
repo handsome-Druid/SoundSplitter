@@ -22,6 +22,7 @@ from SoundSplitter.external import Config, Split, VolumeMonitor
 class Start(QObject):
     finished = Signal(object, object, object)
     _logger: Logger = getLogger(name=__name__)
+    _split_exit = Signal(object, object, object)
 
     class _Thread(QThread):
         if platform == "win32":
@@ -178,7 +179,12 @@ class Start(QObject):
                     if hasattr(self, "_split_conn"):
                         self._split.finished.disconnect(self._split_conn)
                         del self._split_conn
-                    self._split.__exit__(exc_type, exc, tb)
+                    if hasattr(self, "_exit_conn"):
+                        self._split_exit.emit(exc_type, exc, tb)
+                        self._split_exit.disconnect(self._exit_conn)
+                        del self._exit_conn
+                    else:
+                        self._split.__exit__(exc_type, exc, tb)
             finally:
                 if not self._thread.wait(1000):
                     self._thread.quit()
@@ -229,6 +235,7 @@ class Start(QObject):
                 lambda: self._split(None, None, None),
                 type=Qt.ConnectionType.DirectConnection,
             )
+            self._exit_conn: QMetaObject.Connection = self._split_exit.connect(self._split.__exit__)
             self._thread.start()
             volume_device: QAudioDevice | None = self._config.volume_device
             if volume_device is not None:

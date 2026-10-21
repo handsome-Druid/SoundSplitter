@@ -9,6 +9,7 @@ from av.filter import Graph
 from av.filter.context import FilterContext
 from pyaudiowpatch import (  # pyright: ignore[reportMissingModuleSource]
     PyAudio,
+    Stream,
     paContinue,
     paFloat32,
     paInputOverflow,
@@ -120,7 +121,9 @@ class Split(QObject):
             left_name: str = self._left_device.description()
             right_name: str = self._right_device.description()
             for i in range(self._pyaudio.get_device_count()):
-                device_info = self._pyaudio.get_device_info_by_index(i)
+                device_info: Mapping[str, str | int | float] = (
+                    self._pyaudio.get_device_info_by_index(i)
+                )
                 if device_info["hostApi"] != host_api_index:
                     continue
                 if device_info["name"] == source_name:
@@ -255,7 +258,7 @@ class Split(QObject):
         try:
             try:
                 if hasattr(self, "_sink"):
-                    QMetaObject.invokeMethod(self._sink, "stop")
+                    self._sink.stop()
                     del self._sink
                 if hasattr(self, "_sink_io"):
                     del self._sink_io
@@ -304,33 +307,25 @@ class Split(QObject):
             if not hasattr(self, "_pyaudio"):
                 self._pyaudio = PyAudio()
             assert self._source_device is not None
-            self._left_stream = self._pyaudio.open(
+            self._left_stream: Stream = self._pyaudio.open(
                 format=self._left_fmt.pa_format,
                 channels=self._left_fmt.channels,
                 rate=self._left_fmt.rate,
                 output=True,
                 output_device_index=self._left_index,
                 start=False,
-                frames_per_buffer=(
-                    self._left_fmt.rate
-                    * (self._config.left_latency_ms + self._output_buffer_time_ms)
-                    // 1000
-                ),
+                frames_per_buffer=self._left_target,
             )
-            self._right_stream = self._pyaudio.open(
+            self._right_stream: Stream = self._pyaudio.open(
                 format=self._right_fmt.pa_format,
                 channels=self._right_fmt.channels,
                 rate=self._right_fmt.rate,
                 output=True,
                 output_device_index=self._right_index,
                 start=False,
-                frames_per_buffer=(
-                    self._right_fmt.rate
-                    * (self._config.right_latency_ms + self._output_buffer_time_ms)
-                    // 1000
-                ),
+                frames_per_buffer=self._right_target,
             )
-            self._source_stream = self._pyaudio.open(
+            self._source_stream: Stream = self._pyaudio.open(
                 format=self._source_fmt.pa_format,
                 channels=self._source_fmt.channels,
                 rate=self._source_fmt.rate,
@@ -343,13 +338,12 @@ class Split(QObject):
                     paContinue,
                 )[-2:],
                 frames_per_buffer=(
-                    max(
-                        self._output_buffer_time_ms,
-                        min(
+                    (
+                        self._output_buffer_time_ms
+                        + min(
                             self._config.left_latency_ms,
                             self._config.right_latency_ms,
-                            10,
-                        ),
+                        )
                     )
                     * self._source_fmt.rate
                     * 2
@@ -371,7 +365,7 @@ class Split(QObject):
                     )
                     del self._sink_io
                 else:
-                    self._silent_chunk = (
+                    self._silent_chunk: bytes = (
                         b"\x80" * self._sink.bufferSize()
                         if self._sink.format().sampleFormat()
                         == QAudioFormat.SampleFormat.UInt8
@@ -427,7 +421,7 @@ class Split(QObject):
                     except BlockingIOError:
                         break
                     stream.write(
-                        bytes(
+                        frames=bytes(
                             memoryview(output.planes[0])[: output.samples * format.bpf],
                         )
                     )
