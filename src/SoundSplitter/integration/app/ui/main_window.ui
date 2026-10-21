@@ -208,7 +208,7 @@
      <item>
       <layout class="QHBoxLayout" name="horizontalLayout_4">
        <item>
-        <widget class="QCheckBox" name="audioCheckBox">
+        <widget class="QCheckBox" name="monitorCheckBox">
          <property name="layoutDirection">
           <enum>Qt::LayoutDirection::RightToLeft</enum>
          </property>
