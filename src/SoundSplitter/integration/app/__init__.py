@@ -459,6 +459,19 @@ class APP:
             self._ui.monitorCheckBox.checkStateChanged.connect(
                 self._on_check_box_check_state_changed
             )
+            if platform == "linux":
+                self._ui.loopbackCheckBox.setChecked(True)
+                self._on_loopback_check_box_toggled(True)
+                self._config.volume = self._config.source = (
+                    "CABLE Input (SoundSplitter)"
+                )
+                self._ui.loopbackCheckBox.hide()
+            else:
+                self._ui.loopbackCheckBox.setChecked(self._config.loopback)
+            self._mediadevices.audioInputsChanged.connect(self._on_audio_device_changed)
+            self._mediadevices.audioOutputsChanged.connect(
+                self._on_audio_device_changed
+            )
             if self._config.volume_device is not None:
                 assert self._config.volume is not None
                 self._ui.monitorCheckBox.setChecked(True)
@@ -506,16 +519,6 @@ class APP:
                         self._config.volume_device = device
                         break
             self._ui.refreshPushButton.click()
-            if platform == "linux":
-                self._ui.loopbackCheckBox.setChecked(False)
-                self._config.loopback = False
-                self._ui.loopbackCheckBox.hide()
-            else:
-                self._ui.loopbackCheckBox.setChecked(self._config.loopback)
-            self._mediadevices.audioInputsChanged.connect(self._on_audio_device_changed)
-            self._mediadevices.audioOutputsChanged.connect(
-                self._on_audio_device_changed
-            )
             self._server = QLocalServer(parent=self._app)
             self._server.newConnection.connect(self._on_new_connection)
             if not self._server.listen(self._app.applicationName()):
@@ -530,35 +533,6 @@ class APP:
                     )
                 else:
                     self._ui.startPushButton.click()
-            # elif platform == "linux" and (
-            #     self._config.volume != "CABLE Intput (SoundSplitter)"
-            #     or self._config.source != "CABLE Output (SoundSplitter)"
-            # ):
-            #     self._ui.loopbackCheckBox.setChecked(False)
-            #     self._ui.loopbackCheckBox.setEnabled(False)
-            #     self._ui.audioInputComboBox.clear()
-            #     self._ui.audioOutputComboBox.clear()
-            #     for device in QMediaDevices.audioOutputs():
-            #         if device.description() == "CABLE Output (SoundSplitter)":
-            #             self._config.source_device = device
-            #             self._ui.audioInputComboBox.addItem(
-            #                 device.description(), userData=device
-            #             )
-            #             self._ui.audioInputComboBox.setCurrentIndex(0)
-            #         if device.description() == "CABLE Intput (SoundSplitter)":
-            #             self._config.volume_device = device
-            #             self._ui.audioOutputComboBox.addItem(
-            #                 device.description(), userData=device
-            #             )
-            #             self._ui.audioOutputComboBox.setCurrentIndex(0)
-            #         if (
-            #             self._ui.audioInputComboBox.currentData() is not None
-            #             and self._ui.audioOutputComboBox.currentData() is not None
-            #         ):
-            #             break
-            #     self._ui.audioInputComboBox.setEnabled(False)
-            #     self._ui.audioOutputComboBox.setEnabled(False)
-            #     self._ui.startPushButton.click()
             else:
                 self._ui.startPushButton.click()
         except BaseException as e:

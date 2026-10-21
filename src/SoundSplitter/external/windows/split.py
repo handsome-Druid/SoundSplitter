@@ -1,4 +1,3 @@
-# pyright: reportMissingModuleSource=false, reportGeneralTypeIssues=false
 from collections.abc import Mapping
 from fractions import Fraction
 from logging import Logger, getLogger
@@ -8,7 +7,7 @@ from typing import ClassVar, NamedTuple, Self, cast, override
 from av import AudioFormat, AudioFrame, AudioLayout
 from av.filter import Graph
 from av.filter.context import FilterContext
-from pyaudiowpatch import (
+from pyaudiowpatch import (  # pyright: ignore[reportMissingModuleSource]
     PyAudio,
     paContinue,
     paFloat32,

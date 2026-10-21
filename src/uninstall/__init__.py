@@ -131,9 +131,10 @@ class Uninstall(QObject):
                 qt_path: str = QLibraryInfo.path(
                     QLibraryInfo.LibraryPath.TranslationsPath
                 )
-                show_popup: Callable[[], None] = self._ui.languageComboBox.showPopup
 
-                def showPopup() -> None:
+                def showPopup(
+                    showPopup: Callable[[], None] = self._ui.languageComboBox.showPopup,
+                ) -> None:
                     current: str = self._ui.languageComboBox.currentText()
                     self._ui.languageComboBox.clear()
                     self._ui.languageComboBox.addItem("en_US")
@@ -167,7 +168,7 @@ class Uninstall(QObject):
                     index: int = self._ui.languageComboBox.findText(current)
                     if index >= 0:
                         self._ui.languageComboBox.setCurrentIndex(index)
-                    show_popup()
+                    showPopup()
 
                 self._ui.languageComboBox.showPopup = showPopup
                 self._ui.languageComboBox.addItem("en_US")
