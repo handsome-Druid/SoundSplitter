@@ -21,7 +21,6 @@ from pyaudiowpatch import (  # pyright: ignore[reportMissingModuleSource]
 )
 from PySide6.QtCore import (
     QIODevice,
-    QMetaObject,
     QMutex,
     QObject,
     QThread,
