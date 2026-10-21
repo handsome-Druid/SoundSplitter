@@ -4,7 +4,6 @@ from ctypes.wintypes import BOOL, DWORD, LPCWSTR
 from os import link
 from subprocess import list2cmdline
 from sys import argv, exit, modules
-from time import monotonic, sleep
 from typing import NoReturn, override
 
 from PySide6.QtCore import (
@@ -284,31 +283,15 @@ class Uninstall(QObject):
             try:
                 socket = QLocalSocket()
                 socket.connectToServer(Uninstall.APPLICATION_NAME + ".Uninstall")
-                deadline = monotonic() + 10
-                while (
-                    socket.state() == socket.LocalSocketState.ConnectingState
-                    and monotonic() < deadline
-                ):
-                    socket.waitForConnected(msecs=10)
-                    sleep(0.01)
-                if socket.state() != socket.LocalSocketState.ConnectedState:
+                if not socket.waitForConnected(msecs=10000):
                     raise RuntimeError(
                         self.tr("Failed to connect to the original uninstaller: ")
                         + socket.errorString()
                     )
                 if socket.write(b"EXIT") != 4:
                     raise RuntimeError(socket.errorString())
-                socket.flush()
-                deadline = monotonic() + 10
-                while socket.bytesToWrite():
-                    socket.waitForBytesWritten(msecs=10)
-                    if socket.bytesToWrite():
-                        if (
-                            monotonic() >= deadline
-                            or socket.state() != socket.LocalSocketState.ConnectedState
-                        ):
-                            raise RuntimeError(socket.errorString())
-                        sleep(0.01)
+                if not socket.waitForBytesWritten(msecs=10000):
+                    raise RuntimeError(socket.errorString())
                 socket.disconnectFromServer()
                 self._lock = QLockFile(
                     Uninstall._data_dir.absoluteFilePath("uninstall.lock")
@@ -317,15 +300,12 @@ class Uninstall(QObject):
                 self.thread().finished.connect(
                     self._lock.unlock, type=Qt.ConnectionType.DirectConnection
                 )
-                deadline = monotonic() + 10
-                while not self._lock.tryLock(0):
-                    if monotonic() >= deadline:
-                        raise RuntimeError(
-                            self.tr(
-                                "Failed to acquire the uninstaller lock after the original process exited."
-                            )
+                if not self._lock.tryLock(10000):
+                    raise RuntimeError(
+                        self.tr(
+                            "Failed to acquire the uninstaller lock after the original process exited."
                         )
-                    sleep(0.01)
+                    )
                 self.ready.emit()
             except BaseException as e:
                 self.thread().quit()
@@ -350,14 +330,7 @@ class Uninstall(QObject):
                     )
                     socket = QLocalSocket()
                     socket.connectToServer(Uninstall.APPLICATION_NAME)
-                    deadline = monotonic() + 10
-                    while (
-                        socket.state() == socket.LocalSocketState.ConnectingState
-                        and monotonic() < deadline
-                    ):
-                        socket.waitForConnected(msecs=10)
-                        sleep(0.01)
-                    if socket.state() != socket.LocalSocketState.ConnectedState:
+                    if not socket.waitForConnected(msecs=10000):
                         raise RuntimeError(
                             self.tr(
                                 "Failed to close the running instance. Please close it manually and try again."
@@ -365,28 +338,15 @@ class Uninstall(QObject):
                         )
                     if socket.write(b"EXIT") != 4:
                         raise RuntimeError(socket.errorString())
-                    socket.flush()
-                    deadline = monotonic() + 10
-                    while socket.bytesToWrite():
-                        socket.waitForBytesWritten(msecs=10)
-                        if socket.bytesToWrite():
-                            if (
-                                monotonic() >= deadline
-                                or socket.state()
-                                != socket.LocalSocketState.ConnectedState
-                            ):
-                                raise RuntimeError(socket.errorString())
-                            sleep(0.01)
+                    if not socket.waitForBytesWritten(msecs=10000):
+                        raise RuntimeError(socket.errorString())
                     socket.disconnectFromServer()
-                    deadline = monotonic() + 10
-                    while not self._app_lock.tryLock(0):
-                        if monotonic() >= deadline:
-                            raise RuntimeError(
-                                self.tr(
-                                    "Failed to close the running instance. Please close it manually and try again."
-                                )
+                    if not self._app_lock.tryLock(10000):
+                        raise RuntimeError(
+                            self.tr(
+                                "Failed to close the running instance. Please close it manually and try again."
                             )
-                        sleep(0.01)
+                        )
                 self.progress_bar.emit(10)
                 app_dir: QDir = Uninstall._app_dir
                 qInfo(
