@@ -13,16 +13,15 @@ from PySide6.QtCore import (
     Signal,
     Slot,
 )
+from PySide6.QtMultimedia import QAudioDevice
 from shiboken6 import isValid
 
 from SoundSplitter.external import Config, Split, VolumeMonitor
-from SoundSplitter.external.config import QAudioDevice
 
 
 class Start(QObject):
     finished = Signal(object, object, object)
     _logger: Logger = getLogger(name=__name__)
-    _exit_split = Signal(object, object, object)
 
     class _Thread(QThread):
         if platform == "win32":
@@ -156,10 +155,6 @@ class Start(QObject):
         self._config: Config = config
         self._mutex = QMutex()
         self._thread = self._Thread(parent=self)
-        if platform == "linux":
-            from SoundSplitter.external import ALSA
-
-            self._alsa = ALSA()
 
     def __enter__(self) -> Self:
         return self
@@ -185,8 +180,8 @@ class Start(QObject):
                         del self._split_conn
                     self._split.__exit__(exc_type, exc, tb)
             finally:
-                self._thread.quit()
                 if not self._thread.wait(1000):
+                    self._thread.quit()
                     self._thread.finished.connect(self._thread.deleteLater)
                     self._logger.warning(
                         msg=self.tr("Failed to clean up the audio thread")
@@ -225,22 +220,9 @@ class Start(QObject):
                 raise RuntimeError(
                     self.tr("Previous shutdown cleanup is incomplete; retrying cleanup")
                 )
-            if hasattr(self, "_alsa"):
-                if self._config.left is None:
-                    raise RuntimeError(self.tr("No left channel output selected"))
-                if self._config.right is None:
-                    raise RuntimeError(self.tr("No right channel output selected"))
-                if self._config.source is None:
-                    raise RuntimeError(self.tr("No audio input source selected"))
-                self._alsa(self._config.left)
-                self._alsa(self._config.right)
-                self._alsa(self._config.source)
             self._split = Split(self._config)
             self._split_conn: QMetaObject.Connection = self._split.finished.connect(
                 self.__exit__
-            )
-            self._exit_split.connect(
-                self._split.__exit__, type=Qt.ConnectionType.QueuedConnection
             )
             self._split.moveToThread(self._thread)
             self._thread_conn: QMetaObject.Connection = self._thread.started.connect(

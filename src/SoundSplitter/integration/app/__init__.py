@@ -506,7 +506,12 @@ class APP:
                         self._config.volume_device = device
                         break
             self._ui.refreshPushButton.click()
-            self._ui.loopbackCheckBox.setChecked(self._config.loopback)
+            if platform == "linux":
+                self._ui.loopbackCheckBox.setChecked(False)
+                self._config.loopback = False
+                self._ui.loopbackCheckBox.hide()
+            else:
+                self._ui.loopbackCheckBox.setChecked(self._config.loopback)
             self._mediadevices.audioInputsChanged.connect(self._on_audio_device_changed)
             self._mediadevices.audioOutputsChanged.connect(
                 self._on_audio_device_changed
@@ -525,20 +530,35 @@ class APP:
                     )
                 else:
                     self._ui.startPushButton.click()
-            elif platform == "linux":
-                self._ui.loopbackCheckBox.setChecked(True)
-                self._ui.loopbackCheckBox.setEnabled(False)
-                self._ui.audioInputComboBox.clear()
-                for device in QMediaDevices.audioOutputs():
-                    if device.description() == "CABLE Input (SoundSplitter)":
-                        self._config.source_device = device
-                        self._ui.audioInputComboBox.addItem(
-                            device.description(), userData=device
-                        )
-                        self._ui.audioInputComboBox.setCurrentIndex(0)
-                        break
-                self._ui.audioInputComboBox.setEnabled(False)
-                self._ui.startPushButton.click()
+            # elif platform == "linux" and (
+            #     self._config.volume != "CABLE Intput (SoundSplitter)"
+            #     or self._config.source != "CABLE Output (SoundSplitter)"
+            # ):
+            #     self._ui.loopbackCheckBox.setChecked(False)
+            #     self._ui.loopbackCheckBox.setEnabled(False)
+            #     self._ui.audioInputComboBox.clear()
+            #     self._ui.audioOutputComboBox.clear()
+            #     for device in QMediaDevices.audioOutputs():
+            #         if device.description() == "CABLE Output (SoundSplitter)":
+            #             self._config.source_device = device
+            #             self._ui.audioInputComboBox.addItem(
+            #                 device.description(), userData=device
+            #             )
+            #             self._ui.audioInputComboBox.setCurrentIndex(0)
+            #         if device.description() == "CABLE Intput (SoundSplitter)":
+            #             self._config.volume_device = device
+            #             self._ui.audioOutputComboBox.addItem(
+            #                 device.description(), userData=device
+            #             )
+            #             self._ui.audioOutputComboBox.setCurrentIndex(0)
+            #         if (
+            #             self._ui.audioInputComboBox.currentData() is not None
+            #             and self._ui.audioOutputComboBox.currentData() is not None
+            #         ):
+            #             break
+            #     self._ui.audioInputComboBox.setEnabled(False)
+            #     self._ui.audioOutputComboBox.setEnabled(False)
+            #     self._ui.startPushButton.click()
             else:
                 self._ui.startPushButton.click()
         except BaseException as e:
@@ -564,17 +584,16 @@ class APP:
         self._ui.rightListWidget.setEnabled(True)
         self._ui.leftSpinBox.setEnabled(True)
         self._ui.rightSpinBox.setEnabled(True)
-        if platform == "win32":
-            self._ui.audioInputComboBox.setEnabled(True)
-            if self._ui.loopbackCheckBox.isChecked():
-                self._ui.monitorCheckBox.setEnabled(False)
+        self._ui.audioInputComboBox.setEnabled(True)
+        if self._ui.loopbackCheckBox.isChecked():
+            self._ui.monitorCheckBox.setEnabled(False)
+        else:
+            self._ui.monitorCheckBox.setEnabled(True)
+            if self._ui.monitorCheckBox.isChecked():
+                self._ui.audioOutputComboBox.setEnabled(True)
             else:
-                self._ui.monitorCheckBox.setEnabled(True)
-                if self._ui.monitorCheckBox.isChecked():
-                    self._ui.audioOutputComboBox.setEnabled(True)
-                else:
-                    self._ui.audioOutputComboBox.setEnabled(False)
-            self._ui.loopbackCheckBox.setEnabled(True)
+                self._ui.audioOutputComboBox.setEnabled(False)
+        self._ui.loopbackCheckBox.setEnabled(True)
         self._ui.stopPushButton.setEnabled(False)
         self._start_action.setEnabled(True)
         self._stop_action.setEnabled(False)
@@ -612,11 +631,10 @@ class APP:
         self._ui.rightListWidget.setEnabled(False)
         self._ui.leftSpinBox.setEnabled(False)
         self._ui.rightSpinBox.setEnabled(False)
-        if platform == "win32":
-            self._ui.audioInputComboBox.setEnabled(False)
-            self._ui.audioOutputComboBox.setEnabled(False)
-            self._ui.monitorCheckBox.setEnabled(False)
-            self._ui.loopbackCheckBox.setEnabled(False)
+        self._ui.audioInputComboBox.setEnabled(False)
+        self._ui.audioOutputComboBox.setEnabled(False)
+        self._ui.monitorCheckBox.setEnabled(False)
+        self._ui.loopbackCheckBox.setEnabled(False)
         self._ui.stopPushButton.setEnabled(True)
         self._start_action.setEnabled(False)
         self._stop_action.setEnabled(True)

@@ -2,46 +2,35 @@
 from collections.abc import Mapping
 from fractions import Fraction
 from logging import Logger, getLogger
-from sys import platform
 from types import TracebackType
 from typing import ClassVar, NamedTuple, Self, cast, override
 
 from av import AudioFormat, AudioFrame, AudioLayout
 from av.filter import Graph
 from av.filter.context import FilterContext
-from PySide6.QtCore import QIODevice, QMetaObject, QMutex, QObject, Signal, Slot
+from pyaudiowpatch import (
+    PyAudio,
+    paContinue,
+    paFloat32,
+    paInputOverflow,
+    paInputUnderflow,
+    paInt16,
+    paInt32,
+    paUInt8,
+    paWASAPI,
+)
+from PySide6.QtCore import (
+    QIODevice,
+    QMetaObject,
+    QMutex,
+    QObject,
+    QThread,
+    Signal,
+    Slot,
+)
 from PySide6.QtMultimedia import QAudioDevice, QAudioFormat, QAudioSink
 
-if platform == "win32":
-    from pyaudiowpatch import (
-        PyAudio,
-        paContinue,
-        paFloat32,
-        paInputOverflow,
-        paInputUnderflow,
-        paInt16,
-        paInt32,
-        paUInt8,
-    )
-    from pyaudiowpatch import paWASAPI as host_api_type
-else:
-    from pyaudio import (
-        PyAudio,
-        paContinue,
-        paFloat32,
-        paInputOverflow,
-        paInputUnderflow,
-        paInt16,
-        paInt32,
-        paUInt8,
-    )
-
-    if platform == "darwin":
-        from pyaudio import paCoreAudio as host_api_type
-    else:
-        from pyaudio import paALSA as host_api_type
-
-from SoundSplitter.external import Config
+from SoundSplitter.common import Config
 
 
 class Split(QObject):
@@ -124,13 +113,10 @@ class Split(QObject):
             self._output_buffer_time_ms: int = 0
             self._pyaudio = PyAudio()
             host_api_index: str | int = self._pyaudio.get_host_api_info_by_type(
-                host_api_type
+                host_api_type=paWASAPI
             )["index"]
             source_name: str = self._source_device.description()
-            if (
-                self._source_device.mode() == QAudioDevice.Mode.Output
-                and platform == "win32"
-            ):
+            if self._source_device.mode() == QAudioDevice.Mode.Output:
                 source_name += " [Loopback]"
             left_name: str = self._left_device.description()
             right_name: str = self._right_device.description()
@@ -153,21 +139,17 @@ class Split(QObject):
                     (self._left_index, self._right_index),
                     (self._left_fmt, self._right_fmt),
                 ):
-                    stream = self._pyaudio.open(
+                    with self._pyaudio.open(
                         format=fmt.pa_format,
                         channels=fmt.channels,
                         rate=fmt.rate,
                         output=True,
                         output_device_index=index,
                         frames_per_buffer=0,
-                    )
-                    try:
+                    ) as stream:
                         buffer_time_ms: int = (
                             stream.get_write_available() * 1000 + fmt.rate * 2 - 1
                         ) // (fmt.rate * 2)
-                    finally:
-                        stream.stop_stream()
-                        stream.close()
                     self._output_buffer_time_ms = max(
                         self._output_buffer_time_ms,
                         buffer_time_ms,
@@ -300,6 +282,9 @@ class Split(QObject):
                     del self._pyaudio
         finally:
             self._mutex.unlock()
+            thread: QThread = self.thread()
+            if thread == thread.currentThread():
+                thread.quit()
             if is_running:
                 self.finished.emit(exc_type, exc, tb)
 
