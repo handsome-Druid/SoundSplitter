@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 from os import chdir
 from pathlib import Path
+from re import sub
 from shutil import which
 from subprocess import run
 from sys import argv, exit, platform
-from sysconfig import get_path
 from xml.etree.ElementTree import parse
 
 chdir(path=Path(__file__).parent)
@@ -106,17 +106,40 @@ if platform == "linux":
             "--no-prefer-source-code",
             "--include-data-dir=./translations/SoundSplitter=translations/SoundSplitter",
             "--include-data-files="
-            + get_path(name="platlib")
-            + "/PySide6/translations/qtbase_*.qm=PySide6/translations/",
+            + run(
+                args=(
+                    "uv",
+                    "run",
+                    "python",
+                    "-c",
+                    "import PySide6, pathlib; print(pathlib.Path(PySide6.__file__).parent)",
+                ),
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+            + "/translations/qtbase_*.qm=PySide6/translations/",
             "--noinclude-data-files=**/*.ts",
             "--python-flag=-m",
             "src/SoundSplitter",
         ),
         check=True,
     )
+    version: str = run(
+        args=("uvx", "hatch", "version"), capture_output=True, text=True, check=True
+    ).stdout.strip()
     if which(cmd="dpkg-buildpackage") is not None:
+        run(
+            args=(
+                "dch",
+                "--newversion",
+                sub(pattern=r"(\d)(a-zA-Z)", repl=r"\1~\2", string=version) + "-1",
+                "",
+            ),
+            check=True,
+        )
         Path("debian/rules").chmod(mode=0o755)
-        run(args=("dpkg-buildpackage", "-b", "-us", "-uc"), check=True)
+        run(args=("dpkg-buildpackage", "-b", "-uc"), check=True)
 if platform == "win32":
     run(
         args=(
@@ -137,9 +160,7 @@ if platform == "win32":
             "--project-name=SoundSplitter",
             "--output-filename=setup.exe",
             "--include-data-dir=./translations=translations",
-            "--include-data-files="
-            + get_path(name="platlib")
-            + "/PySide6/translations/qtbase_*.qm=PySide6/translations/",
+            "--include-data-files=.venv/Lib/site-packages/PySide6/translations/qtbase_*.qm=PySide6/translations/",
             "--noinclude-data-files=**/*.ts",
             "src/launcher.py",
         ),
