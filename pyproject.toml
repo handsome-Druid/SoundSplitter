@@ -23,7 +23,6 @@ dependencies = [
 
 [project.scripts]
 SoundSplitter = "SoundSplitter:main"
-setup = "setup:main"
 
 [project.urls]
 Repository = "https://github.com/handsome-Druid/SoundSplitter"
