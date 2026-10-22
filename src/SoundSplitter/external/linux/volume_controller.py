@@ -1,8 +1,10 @@
+from math import ceil
+from select import POLLIN, POLLOUT, poll
 from types import TracebackType
 from typing import Protocol, Self, cast, override
 
-from pulsectl import Pulse, PulseDisconnected, PulseError, PulseVolumeInfo
-from PySide6.QtCore import QObject, QTimer, Signal, Slot
+from pulsectl import Pulse, PulseVolumeInfo
+from PySide6.QtCore import QObject, QSocketNotifier, QTimer, Signal, Slot
 
 
 class VolumeController(QObject):
@@ -17,15 +19,13 @@ class VolumeController(QObject):
     _sink: _Sink | None = None
     _volume_percent: float = 100.0
     _mute: bool = False
-    _changed: bool = False
 
     @override
     def __init__(
         self, /, parent: QObject | None = None, *, objectName: str | None = None
     ) -> None:
         super().__init__(parent, objectName=objectName)
-        self._subscription = QTimer(self, interval=50)
-        self._subscription.timeout.connect(self._on_change)
+        self._notifiers: list[QSocketNotifier] = []
 
     @property
     def device(self) -> str | None:
@@ -34,7 +34,10 @@ class VolumeController(QObject):
 
     @device.setter
     def device(self, value: str | None) -> None:
-        self._subscription.stop()
+        for notifier in self._notifiers:
+            notifier.setEnabled(False)
+            notifier.deleteLater()
+        self._notifiers.clear()
         if self._pulse is not None:
             self._pulse.close()
             self._pulse = None
@@ -42,19 +45,17 @@ class VolumeController(QObject):
         self._sink = None
         self._volume_percent = 100.0
         self._mute = False
-        self._changed = False
         if value is not None:
             try:
                 self._pulse = Pulse("SoundSplitter volume")
+                self._pulse.set_poll_func(self._poll)
                 self._pulse.event_callback_set(
-                    lambda event: setattr(self, "_changed", True)
+                    lambda event: QTimer.singleShot(0, self, self._refresh)
                 )
                 self._pulse.event_mask_set("sink")
                 self._refresh()
-                if self._device is not None:
-                    self._subscription.start()
-            except PulseError, PulseDisconnected:
-                self.device = None
+            except BaseException as e:
+                self.__exit__(type(e), e, e.__traceback__)
                 raise
 
     @property
@@ -90,45 +91,69 @@ class VolumeController(QObject):
         self._pulse.sink_mute(self._sink.index, value)
         self._refresh()
 
+    def _poll(self, fds, timeout):
+        for notifier in self._notifiers:
+            notifier.setEnabled(False)
+            notifier.deleteLater()
+        self._notifiers.clear()
+        pending = poll()
+        for fd in fds:
+            pending.register(fd.fd, fd.events)
+            for mask, kind in (
+                (POLLIN, QSocketNotifier.Type.Read),
+                (POLLOUT, QSocketNotifier.Type.Write),
+            ):
+                if fd.events & mask:
+                    notifier = QSocketNotifier(fd.fd, kind, self)
+                    notifier.activated.connect(self._on_change)
+                    self._notifiers.append(notifier)
+        ready = dict(pending.poll(None if timeout < 0 else ceil(timeout * 1000)))
+        for fd in fds:
+            fd.revents = ready.get(fd.fd, 0)
+        return len(ready)
+
     @Slot()
     def _on_change(self) -> None:
-        if self._pulse is None:
-            return
         try:
-            # Dispatch subscription events before making synchronous queries.
-            self._pulse.event_listen(timeout=0.001)
-            if self._changed:
-                self._changed = False
-                self._refresh()
-        except PulseError, PulseDisconnected:
-            self.device = None
+            if self._pulse is not None:
+                self._pulse.event_listen(timeout=0.001)
+        except BaseException as e:
+            self.__exit__(type(e), e, e.__traceback__)
             raise
 
     @Slot()
     def _refresh(self) -> None:
-        if self._pulse is None or self._device is None:
-            return
-        endpoint = next(
-            (
-                item
-                for item in self._pulse.sink_list()
-                if item.description == self._device
-            ),
-            None,
-        )
-        previous = (self._sink and self._sink.name, self._volume_percent, self._mute)
-        if endpoint is None:
-            self.device = None
-        else:
-            self._sink = endpoint
-            self._volume_percent = max(endpoint.volume.values) * 100
-            self._mute = bool(endpoint.mute)
-        if previous != (
-            self._sink and self._sink.name,
-            self._volume_percent,
-            self._mute,
-        ):
-            self.notify.emit(False if self._mute else self._volume_percent / 100)
+        try:
+            if self._pulse is None:
+                return
+            endpoint = next(
+                (
+                    item
+                    for item in self._pulse.sink_list()
+                    if item.description == self._device
+                ),
+                None,
+            )
+            previous = (
+                self._sink and self._sink.name,
+                self._volume_percent,
+                self._mute,
+            )
+            if endpoint is None:
+                self.device = None
+            else:
+                self._sink = endpoint
+                self._volume_percent = max(endpoint.volume.values) * 100
+                self._mute = bool(endpoint.mute)
+            if previous != (
+                self._sink and self._sink.name,
+                self._volume_percent,
+                self._mute,
+            ):
+                self.notify.emit(False if self._mute else self._volume_percent / 100)
+        except BaseException as e:
+            self.__exit__(type(e), e, e.__traceback__)
+            raise
 
     def __enter__(self) -> Self:
         return self
