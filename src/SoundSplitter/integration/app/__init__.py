@@ -110,7 +110,10 @@ class APP:
                     self._window,
                 )
             )
-            self._lock = QLockFile(self._config.dir_.filePath(".lock"))
+            if "__compiled__" in globals():
+                self._lock = QLockFile("/run/" + self._app.applicationName() + "/.lock")
+            else:
+                self._lock = QLockFile(self._config.dir_.filePath(".lock"))
             self._lock.setStaleLockTime(0)
             if not self._lock.tryLock(0):
                 if self._lock.error() == QLockFile.LockError.LockFailedError:

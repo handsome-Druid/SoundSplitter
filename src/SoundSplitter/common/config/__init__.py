@@ -118,9 +118,12 @@ class Config(V2):
                 + app.applicationName()
             )
         else:
-            path = QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.AppLocalDataLocation
-            )
+            if "__compiled__" in globals():
+                path = "/var/lib/" + app.applicationName()
+            else:
+                path = QStandardPaths.writableLocation(
+                    QStandardPaths.StandardLocation.AppLocalDataLocation
+                )
         if not QDir().mkpath(path):
             raise OSError(
                 Config.tr(

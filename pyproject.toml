@@ -37,11 +37,8 @@ path = "src/setup/__about__.py"
 
 [dependency-groups]
 dev = [
-    "deptry>=0.25.1",
     "nuitka>=4.2.2",
     "ordered-set>=4.1.0",
-    "pyright>=1.1.414",
-    "ruff>=0.16.10",
     "zstandard>=0.25.0",
 ]
 

@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec /usr/bin/pw-jack /usr/lib/soundsplitter/SoundSplitter.bin "$@"
