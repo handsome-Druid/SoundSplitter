@@ -21,10 +21,8 @@ from pyaudiowpatch import (  # pyright: ignore[reportMissingImports]
 )
 from PySide6.QtCore import (
     QIODevice,
-    QMetaObject,
     QMutex,
     QObject,
-    QThread,
     Signal,
     Slot,
 )
@@ -428,9 +426,13 @@ class Split(QObject):
                     cmd="expr", arg=f"PTS+{round(number=self._debts[index])}"
                 )
             if status & paInputOverflow:
-                self._logger.warning(msg="Capture overflow, samples discarded.")
+                self._logger.warning(
+                    msg=self.tr("Capture overflow, samples discarded.")
+                )
             if status & paInputUnderflow:
-                self._logger.warning(msg="Capture underflow, silence inserted.")
+                self._logger.warning(
+                    msg=self.tr("Capture underflow, silence inserted.")
+                )
             if hasattr(self, "_sink_io"):
                 self._sink_io.write(self._silent_chunk)
         except BaseException as e:

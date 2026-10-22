@@ -235,7 +235,9 @@ class Start(QObject):
                 lambda: self._split(None, None, None),
                 type=Qt.ConnectionType.DirectConnection,
             )
-            self._exit_conn: QMetaObject.Connection = self._split_exit.connect(self._split.__exit__)
+            self._exit_conn: QMetaObject.Connection = self._split_exit.connect(
+                self._split.__exit__
+            )
             self._thread.start()
             volume_device: QAudioDevice | None = self._config.volume_device
             if volume_device is not None:
