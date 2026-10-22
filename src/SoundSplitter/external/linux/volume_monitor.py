@@ -1,6 +1,7 @@
 from types import TracebackType
 from typing import Literal, Self, override
 
+from pulsectl import PulseDisconnected, PulseError
 from PySide6.QtCore import QObject, Signal, SignalInstance, Slot
 from PySide6.QtMultimedia import QAudioDevice
 
@@ -49,7 +50,13 @@ class VolumeMonitor(VolumeController):
             if self.device is None:
                 raise RuntimeError(f"Audio output not found: {self._description}")
             self._volume.emit(0.0 if self.mute else self.volume_percent / 100)
-        except (OSError, ValueError, RuntimeError) as error:
+        except (
+            OSError,
+            ValueError,
+            RuntimeError,
+            PulseError,
+            PulseDisconnected,
+        ) as error:
             self.__exit__(type(error), error, error.__traceback__)
             raise
 

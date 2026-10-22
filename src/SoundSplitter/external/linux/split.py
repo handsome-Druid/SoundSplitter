@@ -194,9 +194,9 @@ class Split(QObject):
                 self._pts_filters.append(pts)
                 volume: FilterContext = graph.add(filter="volume")
                 resample.link_to(input_=delay)
-                delay.link_to(input_=format)
-                format.link_to(input_=volume)
-                volume.link_to(input_=sink)
+                delay.link_to(input_=volume)
+                volume.link_to(input_=format)
+                format.link_to(input_=sink)
                 self.volume.connect(
                     lambda gain, volume=volume: volume.process_command(
                         cmd="volume", arg=str(object=gain)
@@ -248,9 +248,8 @@ class Split(QObject):
                     del self._pyaudio
         finally:
             self._mutex.unlock()
-            thread: QThread = self.thread()
-            if thread == thread.currentThread():
-                thread.quit()
+            if not self.thread().isMainThread():
+                self.thread().quit()
             if is_running:
                 self.finished.emit(exc_type, exc, tb)
 

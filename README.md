@@ -126,23 +126,23 @@ Some temporary uninstaller files are scheduled for removal when Windows next sta
 On Windows, install Python 3.14+ and [uv](https://docs.astral.sh/uv/). Run these commands from the repository root to install dependencies, generate the UI/resources and translations, and build the installer:
 
 ```powershell
-uv run pyside6-rcc src\SoundSplitter\integration\app\resources\resources.qrc -o src\SoundSplitter\integration\app\resources\resources_rc.py
-uv run pyside6-uic src\SoundSplitter\integration\app\ui\main_window.ui -o src\SoundSplitter\integration\app\ui\main_window_ui.py
-uv run pyside6-rcc src\setup\resources\resources.qrc -o src\setup\resources\resources_rc.py
-uv run pyside6-uic src\setup\ui\main_wizard.ui -o src\setup\ui\main_wizard_ui.py
-uv run pyside6-rcc src\uninstall\resources\resources.qrc -o src\uninstall\resources\resources_rc.py
-uv run pyside6-uic src\uninstall\ui\main_wizard.ui -o src\uninstall\ui\main_wizard_ui.py
+uv run pyside6-rcc src/SoundSplitter/integration/app/resources/resources.qrc -o src/SoundSplitter/integration/app/resources/resources_rc.py
+uv run pyside6-uic src/SoundSplitter/integration/app/ui/main_window.ui -o src/SoundSplitter/integration/app/ui/main_window_ui.py
+uv run pyside6-rcc src/setup/resources/resources.qrc -o src/setup/resources/resources_rc.py
+uv run pyside6-uic src/setup/ui/main_wizard.ui -o src/setup/ui/main_wizard_ui.py
+uv run pyside6-rcc src/uninstall/resources/resources.qrc -o src/uninstall/resources/resources_rc.py
+uv run pyside6-uic src/uninstall/ui/main_wizard.ui -o src/uninstall/ui/main_wizard_ui.py
 
-uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\SoundSplitter -ts translations\SoundSplitter\zh_CN.ts
-uv run pyside6-lrelease translations\SoundSplitter\zh_CN.ts -qm translations\SoundSplitter\zh_CN.qm
-uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\setup -ts translations\setup\zh_CN.ts
-uv run pyside6-lrelease translations\setup\zh_CN.ts -qm translations\setup\zh_CN.qm
-uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src\uninstall -ts translations\uninstall\zh_CN.ts
-uv run pyside6-lrelease translations\uninstall\zh_CN.ts -qm translations\uninstall\zh_CN.qm
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src/SoundSplitter -ts translations/SoundSplitter/zh_CN.ts
+uv run pyside6-lrelease translations/SoundSplitter/zh_CN.ts -qm translations/SoundSplitter/zh_CN.qm
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src/setup -ts translations/setup/zh_CN.ts
+uv run pyside6-lrelease translations/setup/zh_CN.ts -qm translations/setup/zh_CN.qm
+uv run pyside6-lupdate -recursive -extensions py,ui -source-language en_US -target-language zh_CN src/uninstall -ts translations/uninstall/zh_CN.ts
+uv run pyside6-lrelease translations/uninstall/zh_CN.ts -qm translations/uninstall/zh_CN.qm
 
-uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources\icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv\Lib\site-packages\PySide6\translations\qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts src\launcher.py
+uv run nuitka --onefile --onefile-no-dll --follow-imports --output-dir=build --enable-plugin=pyside6 --noinclude-custom-mode=pydantic.v1:bytecode --include-module=av._cyutil --windows-console-mode=hide --windows-icon-from-ico=resources/icon.ico --include-windows-runtime-dlls=no --no-prefer-source-code --project-name=SoundSplitter --output-filename=setup.exe --user-package-configuration-file=nuitka.yml --include-data-dir=./translations=translations --include-data-files=.venv/Lib/site-packages/PySide6/translations/qtbase_*.qm=PySide6/translations/ --noinclude-data-files=**/*.ts src/launcher.py
 ```
 
-The resulting installer is `build\setup.exe`. The launcher runs the application when named `SoundSplitter.exe`, runs the uninstaller when named `uninstall.exe`, and opens the installer for all other names. You can rename the release installer, for example to `SoundSplitter-v2.0.0b1-amd64.exe`.
+The resulting installer is `build/setup.exe`. The launcher runs the application when named `SoundSplitter.exe`, runs the uninstaller when named `uninstall.exe`, and opens the installer for all other names. You can rename the release installer, for example to `SoundSplitter-v2.0.0b1-amd64.exe`.
 
 Generated UI/resource modules and compiled translations are ignored by Git, so regenerate them before building from a fresh checkout.

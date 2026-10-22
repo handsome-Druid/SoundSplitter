@@ -4,40 +4,40 @@
 <context>
     <name>APP</name>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="94"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="102"/>
         <source>Unable to create the log folder in the local data directory. Please check permissions or available disk space.</source>
         <translation>程序无法在本地数据目录中创建日志文件夹，请检查权限或磁盘空间。</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="117"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="125"/>
         <source>Another instance is already running. Check the system tray.</source>
         <translation>已有一个实例正在运行；请检查系统托盘。</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="123"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="131"/>
         <source>Could not create the single-instance lock. Check the directory permissions.</source>
         <translation>无法创建单实例锁；请检查目录权限。</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="145"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="179"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="154"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="191"/>
         <source>Exit</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="148"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="180"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="157"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="192"/>
         <source>Show Main Window</source>
         <translation>显示主窗口</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="151"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="181"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="160"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="193"/>
         <source>Hide to Tray</source>
         <translation>隐藏到托盘</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="198"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="210"/>
         <source>Are you sure you want to exit?</source>
         <translation>确认要退出吗？</translation>
     </message>
@@ -66,7 +66,7 @@
         <translation type="vanished">音频源原生周期（帧）</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="495"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="532"/>
         <source>Do not run SoundSplitter as administrator.</source>
         <translation>不要以管理员身份运行SoundSplitter。</translation>
     </message>
@@ -75,10 +75,10 @@
         <translation type="vanished">：无效的值。</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="184"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="453"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="466"/>
-        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="605"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="196"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="492"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="505"/>
+        <location filename="../../src/SoundSplitter/integration/app/__init__.py" line="644"/>
         <source>Audio input source selected:</source>
         <translation>已选择音频输入源：</translation>
     </message>
@@ -86,12 +86,12 @@
 <context>
     <name>Config</name>
     <message>
-        <location filename="../../src/SoundSplitter/external/config.py" line="102"/>
+        <location filename="../../src/SoundSplitter/common/config/__init__.py" line="110"/>
         <source> failed.</source>
         <translation> 失败。</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/config.py" line="114"/>
+        <location filename="../../src/SoundSplitter/common/config/__init__.py" line="127"/>
         <source>Unable to create the required folder in the local data directory. Please check permissions or available disk space.</source>
         <translation>程序无法在本地数据目录中创建所需的文件夹，请检查权限或磁盘空间。</translation>
     </message>
@@ -282,32 +282,37 @@
         <translation type="vanished"> 字节</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/split.py" line="106"/>
+        <location filename="../../src/SoundSplitter/external/linux/split.py" line="95"/>
+        <location filename="../../src/SoundSplitter/external/windows/split.py" line="95"/>
         <source>No left channel output selected</source>
         <translation>未选择左声道输出</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/split.py" line="108"/>
+        <location filename="../../src/SoundSplitter/external/linux/split.py" line="97"/>
+        <location filename="../../src/SoundSplitter/external/windows/split.py" line="97"/>
         <source>No right channel output selected</source>
         <translation>未选择右声道输出</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/split.py" line="110"/>
+        <location filename="../../src/SoundSplitter/external/linux/split.py" line="99"/>
+        <location filename="../../src/SoundSplitter/external/windows/split.py" line="99"/>
         <source>No audio input source selected</source>
         <translation>未选择音频输入源</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/split.py" line="113"/>
+        <location filename="../../src/SoundSplitter/external/linux/split.py" line="102"/>
+        <location filename="../../src/SoundSplitter/external/windows/split.py" line="102"/>
         <source>Left and right channel outputs cannot use the same device</source>
         <translation>左右声道输出不能使用同一个设备</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/split.py" line="243"/>
+        <location filename="../../src/SoundSplitter/external/windows/split.py" line="239"/>
         <source>Device not found: </source>
         <translation>未找到设备：</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/external/split.py" line="376"/>
+        <location filename="../../src/SoundSplitter/external/linux/split.py" line="317"/>
+        <location filename="../../src/SoundSplitter/external/windows/split.py" line="363"/>
         <source>Failed to start audio sink on device &apos;%s&apos;.</source>
         <translation>无法在设备“%s”上启动音频输出。</translation>
     </message>
@@ -315,12 +320,12 @@
 <context>
     <name>Start</name>
     <message>
-        <location filename="../../src/SoundSplitter/flow/start.py" line="108"/>
+        <location filename="../../src/SoundSplitter/flow/start.py" line="193"/>
         <source>Failed to clean up the audio thread</source>
         <translation>清理音频线程失败</translation>
     </message>
     <message>
-        <location filename="../../src/SoundSplitter/flow/start.py" line="140"/>
+        <location filename="../../src/SoundSplitter/flow/start.py" line="227"/>
         <source>Previous shutdown cleanup is incomplete; retrying cleanup</source>
         <translation>上次退出清理没有完成；正在尝试重新清理</translation>
     </message>
@@ -360,7 +365,7 @@
 <context>
     <name>_Thread</name>
     <message>
-        <location filename="../../src/SoundSplitter/flow/start.py" line="55"/>
+        <location filename="../../src/SoundSplitter/flow/start.py" line="57"/>
         <source>MMCSS registration failed (Windows error %s: %s); the thread will run at normal priority</source>
         <translation>MMCSS 注册失败（Windows 错误 %s：%s）；线程将以正常优先级运行</translation>
     </message>
