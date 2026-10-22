@@ -110,7 +110,7 @@ class APP:
                     self._window,
                 )
             )
-            if "__compiled__" in globals():
+            if "__compiled__" in globals() and platform != "win32":
                 self._lock = QLockFile("/run/" + self._app.applicationName() + "/.lock")
             else:
                 self._lock = QLockFile(self._config.dir_.filePath(".lock"))
