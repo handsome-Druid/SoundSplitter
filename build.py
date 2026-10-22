@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from os import chdir
 from pathlib import Path
-from shutil import copy2, which
+from shutil import which
 from subprocess import run
 from sys import argv, exit, platform
 from sysconfig import get_path
@@ -16,7 +16,6 @@ if "--clean" in argv:
     exit()
 run(args=("uv", "sync"), check=True)
 src: list[Path] = []
-translations: set[Path] = set()
 for path in Path("src").rglob(pattern="*"):
     if path.is_file():
         match path.suffix:
@@ -80,26 +79,13 @@ for path in Path("translations").rglob(pattern="*.ts"):
         ),
         check=True,
     )
-    translations.add(output)
+    src.append(output)
 last_time: float = (
     Path("build/.stamp").stat().st_mtime if Path("build/.stamp").exists() else 0.0
 )
-if last_time != 0.0:
-    for path in Path("build").rglob(pattern="*.qm"):
-        if not path.is_file():
-            continue
-        if "PySide6" not in path.parts:
-            source = Path(*path.parts[path.parts.index("translations") :])
-            if not source.exists():
-                path.unlink()
-            else:
-                translations.discard(source)
-                if source.stat().st_mtime >= path.stat().st_mtime:
-                    copy2(src=source, dst=path)
 if (
     Path(__file__).stat().st_mtime < last_time
     and Path("uv.lock").stat().st_mtime < last_time
-    and not translations
     and all(path.stat().st_mtime < last_time for path in src)
 ):
     exit()

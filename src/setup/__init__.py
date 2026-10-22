@@ -325,7 +325,7 @@ class Setup(QObject):
             ):
                 target: str = QDir(path=dst).filePath(info.fileName())
                 if info.isDir():
-                    if "translation/setup" in info.absoluteFilePath():
+                    if "translations/setup" in info.absoluteFilePath():
                         continue
                     if not QDir().mkpath(target):
                         raise OSError("Create directory failed: " + target)
@@ -604,7 +604,7 @@ class Setup(QObject):
         elif page_id == self._wizard.pageIds()[4]:
             for device in QMediaDevices.audioOutputs():
                 if "CABLE Input" in device.description():
-                    self._ui.detectLabel.setText("Detected")
+                    self._ui.detectLabel.setText(self.tr("Detected"))
                     self._ui.detectLabel.setStyleSheet("color: rgb(40, 167, 69)")
                     self._ui.downloadPushButton.setEnabled(False)
                     break
@@ -663,7 +663,7 @@ class Setup(QObject):
     def _on_critical(self, msg: str, /) -> None:
         self._ui.completeWidget.hide()
         self._ui.InstallationTextBrowser.append(self.tr("Critical: ") + msg)
-        self._ui.completePage.setTitle("Sound Splitter installation Failed")
+        self._ui.completePage.setTitle(self.tr("Sound Splitter installation Failed"))
         QMessageBox.critical(
             self._wizard if hasattr(self, "_wizard") else None,
             self._app.applicationName(),

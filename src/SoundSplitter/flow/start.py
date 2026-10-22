@@ -127,7 +127,7 @@ class Start(QObject):
                                 error = rtkit.lastError().message()
                             else:
                                 try:
-                                    invoked = QMetaObject.invokeMethod(
+                                    invoked: bool = QMetaObject.invokeMethod(
                                         rtkit,
                                         "MakeThreadRealtime",
                                         Qt.ConnectionType.DirectConnection,

@@ -59,6 +59,16 @@
         <translation>隐藏详情信息</translation>
     </message>
     <message>
+        <location filename="../../src/setup/__init__.py" line="607"/>
+        <source>Detected</source>
+        <translation>已安装</translation>
+    </message>
+    <message>
+        <location filename="../../src/setup/__init__.py" line="666"/>
+        <source>Sound Splitter installation Failed</source>
+        <translation>SoundSplitter 安装失败</translation>
+    </message>
+    <message>
         <location filename="../../src/setup/__init__.py" line="683"/>
         <source>Warning: </source>
         <translation>警告：</translation>
