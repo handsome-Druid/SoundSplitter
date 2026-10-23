@@ -330,7 +330,9 @@ class Setup(QObject):
                     if not QDir().mkpath(target):
                         raise OSError("Create directory failed: " + target)
                     self._copy_dir(info.absoluteFilePath(), target)
-                elif info.fileName() == "setup.exe":
+                elif info.fileName().endswith(".exe") and info.dir() == QDir(
+                    path=globals()["__compiled__"].python_runtime_dir
+                ):
                     qInfo(
                         self.tr("Copying file: ")
                         + QDir(path=dst).filePath("SoundSplitter.exe")
@@ -366,7 +368,9 @@ class Setup(QObject):
                     if not dir_.mkpath(target):
                         raise OSError("Create directory failed: " + target)
                     self._link_dir(info.absoluteFilePath(), target)
-                elif info.fileName() == "setup.exe":
+                elif info.fileName().endswith(".exe") and info.dir() == QDir(
+                    path=globals()["__compiled__"].python_runtime_dir
+                ):
                     qInfo(
                         self.tr("Linking file: ")
                         + QDir(path=dst).filePath("SoundSplitter.exe")
