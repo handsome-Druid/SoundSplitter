@@ -8,6 +8,7 @@ from sys import argv, exit, platform
 from xml.etree.ElementTree import parse
 
 chdir(path=Path(__file__).parent)
+environ["PYTHONUNBUFFERED"] = "1"
 if "--deps" in argv:
     if platform == "linux":
         if which(cmd="apt") is not None:
