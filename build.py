@@ -41,11 +41,15 @@ if "--deps" in argv:
                     "--refresh",
                     "install",
                     "curl",
-                    "Development Tools",
+                    "@Development Tools",
                     "ccache",
                     "portaudio-devel",
                     "python3-devel",
                     "patchelf",
+                    "rpm-build",
+                    "redhat-rpm-config",
+                    "systemd-rpm-macros",
+                    "binutils",
                 ),
                 check=True,
             )
@@ -170,7 +174,9 @@ if (
     and Path("uv.lock").stat().st_mtime < last_time
     and all(path.stat().st_mtime < last_time for path in src)
     and all(
-        path.stat().st_mtime < last_time for path in Path("debian").rglob(pattern="*")
+        path.stat().st_mtime < last_time
+        for directory in ("debian", "rpm")
+        for path in Path(directory).rglob(pattern="*")
     )
 ):
     exit()
@@ -236,6 +242,22 @@ if platform == "linux":
                 "--changes-option=-ubuild",
                 "--buildinfo-file=build/soundsplitter.buildinfo",
                 "--changes-file=build/soundsplitter.changes",
+            ),
+            check=True,
+        )
+    elif which(cmd="rpmbuild") is not None:
+        run(
+            args=(
+                "rpmbuild",
+                "-bb",
+                "--define",
+                "_topdir " + str(object=Path("build/rpm").resolve()),
+                "--define",
+                "_sourcedir " + str(object=Path.cwd()),
+                "--define",
+                "app_version "
+                + sub(pattern=r"(\d)([a-zA-Z])", repl=r"\1~\2", string=version),
+                "rpm/soundsplitter.spec",
             ),
             check=True,
         )
