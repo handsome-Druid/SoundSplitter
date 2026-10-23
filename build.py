@@ -193,6 +193,7 @@ if platform == "linux":
             "--output-filename=SoundSplitter.bin",
             "--enable-plugin=pyside6",
             "--noinclude-custom-mode=pydantic.v1:bytecode",
+            "--noinclude-qt-plugins=egldeviceintegrations",
             "--include-module=av._cyutil",
             "--no-prefer-source-code",
             "--assume-yes-for-downloads",
