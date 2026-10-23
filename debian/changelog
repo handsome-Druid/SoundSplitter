@@ -1,5 +1,6 @@
-soundsplitter (3.0.0~a1-1) UNRELEASED; urgency=medium
+soundsplitter (2.1.0~a1-1) UNRELEASED; urgency=medium
 
+  [ SoundSplitter contributors ]
   * New upstream release.
 
- -- SoundSplitter contributors <handsome-Druid@users.noreply.github.com>  Thu, 22 Oct 2026 12:00:00 +0800
+ -- SoundSplitter contributors <handsome-Druid@users.noreply.github.com>  Fri, 23 Oct 2026 14:12:47 +0800

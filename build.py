@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from os import chdir
+from os import chdir, environ, pathsep
 from pathlib import Path
 from re import sub
 from shutil import which
@@ -8,8 +8,90 @@ from sys import argv, exit, platform
 from xml.etree.ElementTree import parse
 
 chdir(path=Path(__file__).parent)
+if "--deps" in argv:
+    if platform == "linux":
+        if which(cmd="apt") is not None:
+            run(args=("sudo", "apt", "update"), check=True)
+            run(
+                args=(
+                    "sudo",
+                    "apt",
+                    "install",
+                    "build-essential",
+                    "ccache",
+                    "portaudio19-dev",
+                    "python3-dev",
+                    "curl",
+                    "patchelf",
+                    "dpkg-dev",
+                    "devscripts",
+                    "debhelper-compat=13",
+                    "binutils",
+                ),
+                check=True,
+            )
+        elif which(cmd="dnf") is not None:
+            environ["PATH"] = (
+                str(object=(Path.home() / ".local" / "bin")) + pathsep + environ["PATH"]
+            )
+            run(
+                args=(
+                    "sudo",
+                    "dnf",
+                    "--refresh",
+                    "install",
+                    "curl",
+                    "Development Tools",
+                    "ccache",
+                    "portaudio-devel",
+                    "python3-devel",
+                    "patchelf",
+                ),
+                check=True,
+            )
+        run(
+            args=("bash", "-c", "curl -LsSf https://astral.sh/uv/install.sh | sh"),
+            check=True,
+        )
+        environ["PATH"] = (
+            str(object=(Path.home() / ".local" / "bin")) + pathsep + environ["PATH"]
+        )
+        run(args=("uv", "sync"), check=True)
+    if platform == "win32":
+        run(
+            args=(
+                "winget",
+                "install",
+                "--id",
+                "Microsoft.VisualStudio.BuildTools",
+                "--exact",
+                "--override",
+                (
+                    "--wait --passive --norestart "
+                    "--add Microsoft.VisualStudio.Workload.VCTools "
+                    "--includeRecommended"
+                ),
+            ),
+            check=True,
+        )
+        run(
+            args=(
+                "winget",
+                "install",
+                "--id",
+                "astral-sh.uv",
+                "--exact",
+            ),
+            check=True,
+        )
+    exit()
 if "--distclean" in argv:
     run(args=("uvx", "pyclean", ".", "--debris", "all"), check=True)
+    for path in Path("src").rglob(pattern="*"):
+        if path.name.endswith(("_ui.py", "_rc.py")):
+            path.unlink()
+    for path in Path("translations").rglob(pattern="*.qm"):
+        path.unlink()
     exit()
 if "--clean" in argv:
     run(args=("uvx", "pyclean", "."), check=True)
@@ -118,7 +200,7 @@ if platform == "linux":
                 text=True,
                 check=True,
             ).stdout.strip()
-            + "/translations/qtbase_*.qm=PySide6/translations/",
+            + "/Qt/translations/qtbase_*.qm=PySide6/translations/",
             "--noinclude-data-files=**/*.ts",
             "--python-flag=-m",
             "src/SoundSplitter",
@@ -129,17 +211,31 @@ if platform == "linux":
         args=("uvx", "hatch", "version"), capture_output=True, text=True, check=True
     ).stdout.strip()
     if which(cmd="dpkg-buildpackage") is not None:
+        Path("debian/changelog.dch").unlink(missing_ok=True)
         run(
             args=(
                 "dch",
+                "--controlmaint",
                 "--newversion",
-                sub(pattern=r"(\d)(a-zA-Z)", repl=r"\1~\2", string=version) + "-1",
+                sub(pattern=r"(\d)([a-zA-Z])", repl=r"\1~\2", string=version) + "-1",
                 "",
             ),
             check=True,
         )
         Path("debian/rules").chmod(mode=0o755)
-        run(args=("dpkg-buildpackage", "-b", "-uc"), check=True)
+        run(
+            args=(
+                "dpkg-buildpackage",
+                "-b",
+                "-uc",
+                "-tc",
+                "--buildinfo-option=-ubuild",
+                "--changes-option=-ubuild",
+                "--buildinfo-file=build/soundsplitter.buildinfo",
+                "--changes-file=build/soundsplitter.changes",
+            ),
+            check=True,
+        )
 if platform == "win32":
     run(
         args=(
