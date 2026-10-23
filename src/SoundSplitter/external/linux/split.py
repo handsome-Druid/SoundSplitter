@@ -129,10 +129,10 @@ class Split(QObject):
             self._pts = 0
             self._debts: list[float] = [0.0, 0.0]
             self._left_target: int = (
-                self._left_fmt.rate * (self._config.left_latency_ms + 20) // 1000
+                self._left_fmt.rate * (self._config.left_latency_ms) // 1000
             )
             self._right_target: int = (
-                self._right_fmt.rate * (self._config.right_latency_ms + 20) // 1000
+                self._right_fmt.rate * (self._config.right_latency_ms) // 1000
             )
             self._ready_read.connect(self._on_ready_read)
             graph: Graph = Graph()
@@ -272,9 +272,9 @@ class Split(QObject):
             assert self._right_device is not None
             self._left_stream = QAudioSink(self._left_device)
             self._right_stream = QAudioSink(self._right_device)
-            if 20 + self._config.left_latency_ms > 125:
+            if 30 + self._config.left_latency_ms > 125:
                 self._left_stream.setBufferFrameCount(self._left_target * 2)
-            if 20 + self._config.right_latency_ms > 125:
+            if 30 + self._config.right_latency_ms > 125:
                 self._right_stream.setBufferFrameCount(self._right_target * 2)
             self._source_stream: Stream = self._pyaudio.open(
                 format=self._source_fmt.pa_format,
@@ -290,7 +290,7 @@ class Split(QObject):
                 )[-2:],
                 frames_per_buffer=(
                     (
-                        20
+                        30
                         + min(
                             self._config.left_latency_ms,
                             self._config.right_latency_ms,
