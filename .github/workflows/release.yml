@@ -6,7 +6,6 @@ on:
       - '**'
 
 permissions:
-  contents: read
   actions: write
 
 jobs:
@@ -20,17 +19,9 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const tag = context.ref.replace(/^refs\/tags\//, '');
-            const { data: commit } = await github.rest.repos.getCommit({
-              owner, repo, ref: context.ref,
-            });
             await github.rest.actions.createWorkflowDispatch({
               owner, repo,
               workflow_id: 'build-release.yml',
               ref: 'master',
-              inputs: { tag, sha: commit.sha },
+              inputs: { tag },
             });
-            await core.summary
-              .addHeading(`Dispatched release build: ${tag}`)
-              .addRaw(`Build workflow runs on master; source commit: ${commit.sha}.`)
-              .addLink('View build runs', `${context.serverUrl}/${owner}/${repo}/actions/workflows/build-release.yml`)
-              .write();
