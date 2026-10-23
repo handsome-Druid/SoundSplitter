@@ -28,7 +28,7 @@ jobs:
           - target: windows-x64
             runner: windows-2022
             container: ''
-            artifact-path: build/setup.exe
+            artifact-path: build/*.exe
           - target: ubuntu-22.04-x64
             runner: ubuntu-22.04
             container: ''
