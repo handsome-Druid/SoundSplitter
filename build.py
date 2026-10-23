@@ -181,6 +181,9 @@ if (
     )
 ):
     exit()
+version: str = run(
+    args=("uvx", "hatch", "version"), capture_output=True, text=True, check=True
+).stdout.strip()
 if platform == "linux":
     run(
         args=(
@@ -219,9 +222,6 @@ if platform == "linux":
         ),
         check=True,
     )
-    version: str = run(
-        args=("uvx", "hatch", "version"), capture_output=True, text=True, check=True
-    ).stdout.strip()
     if which(cmd="dpkg-buildpackage") is not None:
         Path("debian/changelog.dch").unlink(missing_ok=True)
         run(
@@ -285,7 +285,7 @@ if platform == "win32":
             "--include-windows-runtime-dlls=no",
             "--no-prefer-source-code",
             "--project-name=SoundSplitter",
-            "--output-filename=setup.exe",
+            "--output-filename=soundsplitter-" + version + "-x64.exe",
             "--include-data-dir=./translations=translations",
             "--include-data-files=.venv/Lib/site-packages/PySide6/translations/qtbase_*.qm=PySide6/translations/",
             "--noinclude-data-files=**/*.ts",
