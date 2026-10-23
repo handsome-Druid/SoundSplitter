@@ -62,10 +62,6 @@ jobs:
     defaults:
       run:
         shell: bash
-    env:
-      NUITKA_CACHE_DIR: .nuitka-cache
-      QT_QPA_PLATFORM: offscreen
-
     steps:
       - name: Install additional AlmaLinux dependencies
         if: matrix.target == 'alma-9-x64'
@@ -98,22 +94,33 @@ jobs:
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
         with:
-          enable-cache: true
-          cache-suffix: ${{ matrix.target }}
+          enable-cache: false
+          cache-local-path: .uv-cache
 
-      - name: Cache Nuitka
-        uses: actions/cache@v4
+      - name: Restore build caches
+        id: cache
+        uses: actions/cache/restore@v4
         with:
-          path: ${{ env.NUITKA_CACHE_DIR }}
-          key: nuitka-${{ matrix.target }}-${{ hashFiles('.python-version', 'uv.lock') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            nuitka-${{ matrix.target }}-${{ hashFiles('.python-version', 'uv.lock') }}-
-            nuitka-${{ matrix.target }}-
+          path: |
+            .nuitka-cache
+            .uv-cache
+          key: build-${{ matrix.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: build-${{ matrix.target }}-
 
       - name: Compile and package with build.py
         run: |
+          export NUITKA_CACHE_DIR="$PWD/.nuitka-cache"
           export CCACHE_BASEDIR="$PWD"
           uv run --no-project python build.py
+
+      - name: Save build caches
+        if: ${{ !cancelled() && steps.cache.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .nuitka-cache
+            .uv-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
