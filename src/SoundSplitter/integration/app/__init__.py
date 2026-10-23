@@ -524,6 +524,7 @@ class APP:
             self._ui.refreshPushButton.click()
             self._server = QLocalServer(parent=self._app)
             self._server.newConnection.connect(self._on_new_connection)
+            QLocalServer.removeServer(self._app.applicationName())
             if not self._server.listen(self._app.applicationName()):
                 raise RuntimeError(self._server.errorString())
             if platform == "win32":
