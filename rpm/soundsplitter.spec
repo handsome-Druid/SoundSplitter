@@ -32,10 +32,8 @@ SoundSplitter routes left and right audio channels to separate devices,
 with independent delay adjustment and volume monitoring.
 This package contains a precompiled Nuitka standalone application.
 
-%build
-readelf -h "%{_sourcedir}/build/SoundSplitter.dist/SoundSplitter.bin" > /dev/null
-
 %install
+readelf -h "%{_sourcedir}/build/SoundSplitter.dist/SoundSplitter.bin" > /dev/null
 install -d %{buildroot}%{_libdir}/SoundSplitter
 cp -a "%{_sourcedir}/build/SoundSplitter.dist/." %{buildroot}%{_libdir}/SoundSplitter/
 chmod 0755 %{buildroot}%{_libdir}/SoundSplitter/SoundSplitter.bin

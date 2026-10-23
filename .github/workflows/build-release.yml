@@ -1,0 +1,276 @@
+name: Build tag release
+run-name: Build release ${{ inputs.tag }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag to build and attach release assets to
+        required: true
+        type: string
+      sha:
+        description: Exact commit resolved from the pushed tag
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-build-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate tag and build ref
+    runs-on: ubuntu-22.04
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Require master context and verify tag commit
+        id: source
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ inputs.sha }}
+        with:
+          script: |
+            if (context.ref !== 'refs/heads/master') {
+              throw new Error('Dispatch this workflow on master so caches are shared across tags');
+            }
+            const tag = process.env.RELEASE_TAG;
+            const sha = process.env.RELEASE_SHA;
+            if (!tag || !/^[0-9a-f]{40}$/.test(sha)) {
+              throw new Error('A tag and full commit SHA are required');
+            }
+            const { data: commit } = await github.rest.repos.getCommit({
+              ...context.repo, ref: `refs/tags/${tag}`,
+            });
+            if (commit.sha !== sha) {
+              throw new Error(`Tag ${tag} no longer points to the dispatched commit`);
+            }
+            core.setOutput('sha', sha);
+
+  build:
+    name: Build (${{ matrix.target }})
+    needs: validate
+    runs-on: ${{ matrix.runner }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-2022
+            container: ''
+            artifact-path: build/setup.exe
+          - target: ubuntu-22.04-x64
+            runner: ubuntu-22.04
+            container: ''
+            artifact-path: build/*.deb
+          - target: alma-9-x64
+            runner: ubuntu-22.04
+            container: quay.io/pypa/manylinux_2_34_x86_64:latest
+            artifact-path: build/RPMS/**/*.rpm
+    defaults:
+      run:
+        shell: bash
+    env:
+      NUITKA_CACHE_DIR: ${{ github.workspace }}/.nuitka-cache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 1G
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      - name: Install additional AlmaLinux dependencies
+        if: matrix.target == 'alma-9-x64'
+        run: |
+          dnf install -y \
+            git ccache portaudio-devel \
+            rpm-build redhat-rpm-config systemd-rpm-macros \
+            pulseaudio-libs mesa-libGL mesa-libEGL fontconfig dbus-libs glib2 \
+            libxkbcommon-x11 xcb-util-cursor xcb-util-image xcb-util-keysyms \
+            xcb-util-renderutil xcb-util-wm libXrender libXi libXext
+
+      - name: Check out exact tag commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.sha }}
+          persist-credentials: false
+
+      - name: Install additional Ubuntu dependencies
+        if: matrix.target == 'ubuntu-22.04-x64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ccache portaudio19-dev devscripts debhelper \
+            libpulse0 libgl1 libegl1 libfontconfig1 libdbus-1-3 libglib2.0-0 \
+            libxkbcommon-x11-0 libxcb-cursor0 libxcb-image0 libxcb-keysyms1 \
+            libxcb-render-util0 libxcb-icccm4 libxcb-shape0 libxcb-xinerama0 \
+            libxcb-randr0 libxrender1 libxi6 libxext6
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.14'
+          enable-cache: true
+          cache-suffix: ${{ matrix.target }}
+          cache-dependency-glob: uv.lock
+
+      - name: Restore Nuitka cache (including ccache and clcache)
+        id: nuitka-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.NUITKA_CACHE_DIR }}
+          key: nuitka-v1-${{ matrix.target }}-py314-${{ hashFiles('uv.lock', 'build.py') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            nuitka-v1-${{ matrix.target }}-py314-${{ hashFiles('uv.lock', 'build.py') }}-
+            nuitka-v1-${{ matrix.target }}-py314-
+
+      - name: Compile and package with build.py
+        run: uv run --no-project --python 3.14 python build.py
+
+      - name: Save Nuitka cache
+        if: ${{ always() && steps.nuitka-cache.outcome == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.NUITKA_CACHE_DIR }}
+          key: ${{ steps.nuitka-cache.outputs.cache-primary-key }}
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.target }}
+          path: ${{ matrix.artifact-path }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Upload packages to draft release
+    needs: [validate, build]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download all platform packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Sign package provenance with GitHub OIDC
+        id: provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: release-assets/**
+
+      - name: Create or update draft release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+          RELEASE_SHA: ${{ needs.validate.outputs.sha }}
+          PROVENANCE_BUNDLE: ${{ steps.provenance.outputs.bundle-path }}
+        with:
+          script: |
+            const fs = require('node:fs/promises');
+            const path = require('node:path');
+            const { owner, repo } = context.repo;
+            const tag = process.env.RELEASE_TAG;
+            const { data: commit } = await github.rest.repos.getCommit({
+              owner, repo, ref: `refs/tags/${tag}`,
+            });
+            if (commit.sha !== process.env.RELEASE_SHA) {
+              throw new Error(`Tag ${tag} changed during the build; refusing to upload`);
+            }
+            const root = path.resolve('release-assets');
+            await fs.copyFile(
+              process.env.PROVENANCE_BUNDLE,
+              path.join(root, 'provenance.sigstore.json'),
+            );
+            const files = [];
+            async function collect(directory) {
+              for (const entry of await fs.readdir(directory, { withFileTypes: true })) {
+                const filename = path.join(directory, entry.name);
+                if (entry.isDirectory()) {
+                  await collect(filename);
+                } else if (entry.isFile()) {
+                  files.push(filename);
+                }
+              }
+            }
+            await collect(root);
+            for (const extension of ['.exe', '.deb', '.rpm']) {
+              if (!files.some(filename => path.extname(filename) === extension)) {
+                throw new Error(`Missing ${extension} package; refusing to create release`);
+              }
+            }
+            const names = files.map(filename => path.basename(filename));
+            if (new Set(names).size !== names.length) {
+              throw new Error('Duplicate release asset names');
+            }
+
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner, repo, per_page: 100,
+            });
+            let release = releases.find(item => item.tag_name === tag);
+            if (release && !release.draft) {
+              throw new Error(`Release ${tag} is already published; refusing to modify it`);
+            }
+            if (!release) {
+              ({ data: release } = await github.rest.repos.createRelease({
+                owner, repo,
+                tag_name: tag,
+                name: tag,
+                draft: true,
+                body: [
+                  `Source commit: ${process.env.RELEASE_SHA}`,
+                  '',
+                  'Packages have GitHub OIDC/Sigstore-signed build provenance (not Authenticode or RPM GPG signatures).',
+                  'The signing workflow runs on master and checks out the source commit above.',
+                  'Verify a downloaded package with:',
+                  '```sh',
+                  `gh attestation verify <package-file> --repo ${owner}/${repo} --signer-workflow ${owner}/${repo}/.github/workflows/build-release.yml`,
+                  '```',
+                  'The signed bundle is also attached as provenance.sigstore.json.',
+                ].join('\n'),
+                generate_release_notes: true,
+              }));
+            }
+
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              owner, repo, release_id: release.id, per_page: 100,
+            });
+            const contentTypes = {
+              '.exe': 'application/vnd.microsoft.portable-executable',
+              '.deb': 'application/vnd.debian.binary-package',
+              '.rpm': 'application/x-rpm',
+              '.json': 'application/json',
+            };
+            for (const filename of files) {
+              const name = path.basename(filename);
+              const existing = assets.find(asset => asset.name === name);
+              if (existing) {
+                await github.rest.repos.deleteReleaseAsset({
+                  owner, repo, asset_id: existing.id,
+                });
+              }
+              const data = await fs.readFile(filename);
+              await github.rest.repos.uploadReleaseAsset({
+                owner, repo, release_id: release.id, name, data,
+                headers: {
+                  'content-type': contentTypes[path.extname(filename)] || 'application/octet-stream',
+                  'content-length': data.length,
+                },
+              });
+              core.info(`Uploaded ${name}`);
+            }
+            await core.summary
+              .addHeading(`Draft release: ${tag}`)
+              .addLink('Open draft release', release.html_url)
+              .addList(names)
+              .write();

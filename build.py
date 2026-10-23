@@ -195,6 +195,7 @@ if platform == "linux":
             "--noinclude-custom-mode=pydantic.v1:bytecode",
             "--include-module=av._cyutil",
             "--no-prefer-source-code",
+            "--assume-yes-for-downloads",
             "--include-data-dir=./translations/SoundSplitter=translations/SoundSplitter",
             "--include-data-files="
             + run(
@@ -253,6 +254,8 @@ if platform == "linux":
                 "--define",
                 "_topdir " + str(object=Path("build/rpm").resolve()),
                 "--define",
+                "_rpmdir " + str(object=Path("build").resolve()),
+                "--define",
                 "_sourcedir " + str(object=Path.cwd()),
                 "--define",
                 "app_version "
@@ -272,6 +275,7 @@ if platform == "win32":
             "--follow-imports",
             "--output-dir=build",
             "--enable-plugin=pyside6",
+            "--assume-yes-for-downloads",
             "--noinclude-custom-mode=pydantic.v1:bytecode",
             "--include-module=av._cyutil",
             "--windows-console-mode=hide",
