@@ -6,6 +6,9 @@ Turn two separate speakers into a stereo pair: one plays the left channel, and t
 
 **For Windows and Linux.** Use two different audio output devices recognized by your system. Wired, USB, and Bluetooth speakers can be used together. Keep using your music player, browser, or game as usual.
 
+> [!IMPORTANT]
+> **Before starting SoundSplitter, check for audio devices with duplicate names in your system.** SoundSplitter identifies devices by name rather than device ID. Duplicate names may cause unexpected errors. Rename any duplicates in your system settings so each device has a unique name before launching the application. Naming the two output devices **Left channel output** and **Right channel output** makes them easier to identify.
+
 ## 1. Download and install
 
 Choose the package for your system from [Releases](https://github.com/handsome-Druid/SoundSplitter/releases):
