@@ -527,7 +527,7 @@ class APP:
             if not self._server.listen(self._app.applicationName()):
                 raise RuntimeError(self._server.errorString())
             if platform == "win32":
-                from ctypes import windll
+                from ctypes import windll  # pyright: ignore[reportAttributeAccessIssue]
 
                 if windll.shell32.IsUserAnAdmin():
                     self._pending_msg: list[str] = getattr(self, "_pending_msg", [])
@@ -897,21 +897,22 @@ class APP:
                 )
                 if not directory.mkpath("autostart"):
                     raise OSError("Cannot create autostart directory")
-
                 executable: str = QCoreApplication.applicationFilePath()
-                executable: str = (
+                exec_command: str = (
                     executable.replace("\\", "\\\\\\\\")
                     .replace('"', '\\\\"')
                     .replace("`", "\\\\`")
                     .replace("$", "\\\\$")
                     .replace("%", "%%")
                 )
+
                 settings = ConfigParser(interpolation=None)
                 settings.optionxform = lambda optionstr: optionstr
                 settings["Desktop Entry"] = {
                     "Type": "Application",
                     "Name": "SoundSplitter",
-                    "Exec": f'"{executable}" --hide',
+                    "Exec": f'"{exec_command}" --hide',
+                    "TryExec": executable,
                     "Terminal": "false",
                 }
                 with StringIO() as buffer:

@@ -169,6 +169,9 @@ if (
     Path(__file__).stat().st_mtime < last_time
     and Path("uv.lock").stat().st_mtime < last_time
     and all(path.stat().st_mtime < last_time for path in src)
+    and all(
+        path.stat().st_mtime < last_time for path in Path("debian").rglob(pattern="*")
+    )
 ):
     exit()
 if platform == "linux":

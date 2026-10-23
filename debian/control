@@ -13,5 +13,3 @@ Depends: ${misc:Depends}, ${shlibs:Depends}, pipewire, pipewire-jack, pipewire-p
 Description: Split stereo audio between two output devices
  SoundSplitter routes left and right audio channels to separate devices,
  with independent delay adjustment and volume monitoring.
- This package contains a prebuilt Nuitka standalone application and uses
- the PipeWire JACK and PulseAudio compatibility services.
