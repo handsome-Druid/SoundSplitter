@@ -1,7 +1,7 @@
 from sys import platform
 
 if platform == "win32":
-    import comtypes  # noqa: F401
+    import comtypes  # pyright: ignore[reportMissingImports] # noqa: F401
 from .config import Config as Config
 
 if platform == "linux":
