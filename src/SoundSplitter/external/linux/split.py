@@ -1,8 +1,9 @@
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from fractions import Fraction
 from logging import Logger, getLogger
+from os import environ
 from types import TracebackType
-from typing import ClassVar, NamedTuple, Self, cast, override
+from typing import ClassVar, Concatenate, NamedTuple, Self, cast, override
 
 from av import AudioFormat, AudioFrame, AudioLayout
 from av.filter import Graph
@@ -10,6 +11,7 @@ from av.filter.context import FilterContext
 from pyaudio import (  # pyright: ignore[reportMissingModuleSource]
     PyAudio,
     Stream,
+    paALSA,
     paContinue,
     paFloat32,
     paInputOverflow,
@@ -51,6 +53,12 @@ class Split(QObject):
         QAudioFormat.SampleFormat.Int32: paInt32,
         QAudioFormat.SampleFormat.UInt8: paUInt8,
     }
+
+    class _PyAudio(PyAudio):
+        @override
+        def __init__(self) -> None:
+            super().__init__()
+            self.open_q_audio_device = Split._pyaudio_open(self.open)
 
     @staticmethod
     def _handler(
@@ -99,40 +107,81 @@ class Split(QObject):
                 raise RuntimeError(
                     self.tr("Left and right channel outputs cannot use the same device")
                 )
+            self._pyaudio = Split._PyAudio()
+            jack_index: str | int = self._pyaudio.get_host_api_info_by_type(
+                host_api_type=paJACK
+            )["index"]
+            alsa_index: str | int = self._pyaudio.get_host_api_info_by_type(
+                host_api_type=paALSA
+            )["index"]
+            source_name: str = self._source_device.description().translate(
+                str.maketrans(" ()[].:*$", "_" * 9)
+            )
+            self._left_device.description()
+            self._right_device.description()
+            source_format: QAudioFormat = self._source_device.preferredFormat()
+            for i in range(self._pyaudio.get_device_count()):
+                device_info: Mapping[str, str | int | float] = (
+                    self._pyaudio.get_device_info_by_index(device_index=i)
+                )
+                print("alsa_index:", alsa_index)
+                print("device:", i, repr(device_info["name"]), device_info["hostApi"])
+                if (
+                    device_info["hostApi"] == jack_index
+                    and device_info["name"] == source_name
+                ):
+                    self._source_index: int = i
+                    source_format.setSampleRate(int(device_info["defaultSampleRate"]))
+                    continue
+                if (
+                    device_info["hostApi"] == alsa_index
+                    and device_info["name"] == "pipewire"
+                    and int(device_info["maxOutputChannels"]) > 0
+                ):
+                    self._output_index: int = i
+            self._source_fmt: Split._Format = self._handler(source_format)
             self._left_fmt: Split._Format = self._handler(
                 self._left_device.preferredFormat()
             )
             self._right_fmt: Split._Format = self._handler(
                 self._right_device.preferredFormat()
             )
-            self._pyaudio = PyAudio()
-            host_api_index: str | int = self._pyaudio.get_host_api_info_by_type(
-                host_api_type=paJACK
-            )["index"]
-            source_name: str = self._source_device.description().translate(
-                str.maketrans(" ()[].:*$", "_" * 9)
-            )
-            self._source_format: QAudioFormat = self._source_device.preferredFormat()
-            for i in range(self._pyaudio.get_device_count()):
-                device_info: Mapping[str, str | int | float] = (
-                    self._pyaudio.get_device_info_by_index(device_index=i)
-                )
-                if device_info["hostApi"] != host_api_index:
-                    continue
-                if device_info["name"] == source_name:
-                    self._source_index: int = i
-                    self._source_format.setSampleRate(
-                        int(device_info["defaultSampleRate"])
-                    )
-                    break
-            self._source_fmt: Split._Format = self._handler(self._source_format)
             self._pts = 0
             self._debts: list[float] = [0.0, 0.0]
+            self._output_buffer_time_ms = 0
+            for device, fmt in zip(
+                (self._left_device, self._right_device),
+                (self._left_fmt, self._right_fmt),
+            ):
+                stream: Stream = self._pyaudio.open_q_audio_device(
+                    device,
+                    format=fmt.pa_format,
+                    channels=fmt.channels,
+                    rate=fmt.rate,
+                    output=True,
+                    output_device_index=self._output_index,
+                    frames_per_buffer=0,
+                )
+                try:
+                    buffer_time_ms: int = (
+                        stream.get_write_available() * 1000 + fmt.rate * 2 - 1
+                    ) // (fmt.rate * 2)
+                finally:
+                    stream.stop_stream()
+                    stream.close()
+                self._output_buffer_time_ms: int = max(
+                    self._output_buffer_time_ms,
+                    buffer_time_ms,
+                )
             self._left_target: int = (
-                self._left_fmt.rate * (self._config.left_latency_ms) // 1000
+                self._left_fmt.rate
+                * (self._config.left_latency_ms + self._output_buffer_time_ms)
+                // 1000
             )
             self._right_target: int = (
-                self._right_fmt.rate * (self._config.right_latency_ms) // 1000
+                self._right_fmt.rate
+                * (self._config.right_latency_ms + self._output_buffer_time_ms)
+                // 1000
             )
             self._ready_read.connect(self._on_ready_read)
             graph: Graph = Graph()
@@ -232,14 +281,14 @@ class Split(QObject):
                 finally:
                     try:
                         if hasattr(self, "_left_stream"):
-                            self._left_stream.stop()
+                            self._left_stream.stop_stream()
+                            self._left_stream.close()
                             del self._left_stream
-                            del self._left_io
                     finally:
                         if hasattr(self, "_right_stream"):
-                            self._right_stream.stop()
+                            self._right_stream.stop_stream()
+                            self._right_stream.close()
                             del self._right_stream
-                            del self._right_io
             finally:
                 if hasattr(self, "_pyaudio"):
                     self._pyaudio.terminate()
@@ -266,16 +315,30 @@ class Split(QObject):
             if not self._mutex.try_lock():
                 return
             if not hasattr(self, "_pyaudio"):
-                self._pyaudio = PyAudio()
+                self._pyaudio = Split._PyAudio()
             assert self._source_device is not None
             assert self._left_device is not None
             assert self._right_device is not None
-            self._left_stream = QAudioSink(self._left_device)
-            self._right_stream = QAudioSink(self._right_device)
-            if 30 + self._config.left_latency_ms > 125:
-                self._left_stream.setBufferFrameCount(self._left_target * 2)
-            if 30 + self._config.right_latency_ms > 125:
-                self._right_stream.setBufferFrameCount(self._right_target * 2)
+            self._left_stream: Stream = self._pyaudio.open_q_audio_device(
+                self._left_device,
+                format=self._left_fmt.pa_format,
+                channels=self._left_fmt.channels,
+                rate=self._left_fmt.rate,
+                output=True,
+                output_device_index=self._output_index,
+                start=False,
+                frames_per_buffer=self._left_target,
+            )
+            self._right_stream: Stream = self._pyaudio.open_q_audio_device(
+                self._right_device,
+                format=self._right_fmt.pa_format,
+                channels=self._right_fmt.channels,
+                rate=self._right_fmt.rate,
+                output=True,
+                output_device_index=self._output_index,
+                start=False,
+                frames_per_buffer=self._right_target,
+            )
             self._source_stream: Stream = self._pyaudio.open(
                 format=self._source_fmt.pa_format,
                 channels=self._source_fmt.channels,
@@ -290,7 +353,7 @@ class Split(QObject):
                 )[-2:],
                 frames_per_buffer=(
                     (
-                        30
+                        self._output_buffer_time_ms
                         + min(
                             self._config.left_latency_ms,
                             self._config.right_latency_ms,
@@ -307,7 +370,7 @@ class Split(QObject):
             else:
                 sink_device = self._config.volume_device
             if sink_device is not None:
-                self._sink = QAudioSink(sink_device, format=self._source_format)
+                self._sink = QAudioSink(sink_device)
                 self._sink_io: QIODevice = self._sink.start()
                 if self._sink_io is None:
                     self._logger.warning(
@@ -323,11 +386,11 @@ class Split(QObject):
                         else bytes(self._sink.bufferSize())
                     )
                     self._sink_io.write(self._silent_chunk)
-            self._left_io: QIODevice = self._left_stream.start()
-            self._right_io: QIODevice = self._right_stream.start()
-            self._left_capacity: int = self._left_stream.bufferSize()
-            self._right_capacity: int = self._right_stream.bufferSize()
+            self._left_stream.start_stream()
+            self._right_stream.start_stream()
             self._source_stream.start_stream()
+            self._left_capacity: int = self._left_stream.get_write_available()
+            self._right_capacity: int = self._right_stream.get_write_available()
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
@@ -353,17 +416,16 @@ class Split(QObject):
             self._pts += frame_count
             memoryview(frame.planes[0])[:] = data
             self._input.push(frame=frame)
-            for index, (format, stream, sink, capacity, target, io) in enumerate(
+            for index, (format, stream, sink, capacity, target) in enumerate(
                 iterable=zip(
                     (self._left_fmt, self._right_fmt),
                     (self._left_stream, self._right_stream),
                     (self._left_sink, self._right_sink),
                     (self._left_capacity, self._right_capacity),
                     (self._left_target, self._right_target),
-                    (self._left_io, self._right_io),
                 )
             ):
-                backlog: int = (capacity - stream.bytesFree()) // format.bpf
+                backlog: int = capacity - stream.get_write_available()
                 self._debts[index] += (
                     (target - backlog) * self._source_fmt.rate / format.rate * 0.01
                 )
@@ -372,23 +434,11 @@ class Split(QObject):
                         output: AudioFrame = cast(AudioFrame, sink.pull())
                     except BlockingIOError:
                         break
-                    payload = bytes(
-                        memoryview(output.planes[0])[: output.samples * format.bpf],
-                    )
-                    written = io.write(payload)
-                    if written != len(payload):
-                        self._logger.warning(
-                            msg=(
-                                self.tr("Left channel output")
-                                if index == 0
-                                else self.tr("Right channel output")
-                            )
-                            + self.tr(" audio short write: ")
-                            + str(object=written)
-                            + " / "
-                            + str(object=len(payload))
-                            + self.tr(" bytes")
+                    stream.write(
+                        frames=bytes(
+                            memoryview(output.planes[0])[: output.samples * format.bpf],
                         )
+                    )
                 self._pts_filters[index].process_command(
                     cmd="expr", arg=f"PTS+{round(number=self._debts[index])}"
                 )
@@ -405,3 +455,20 @@ class Split(QObject):
         except BaseException as e:
             self.__exit__(type(e), e, e.__traceback__)
             raise
+
+    @staticmethod
+    def _pyaudio_open[**P, R](
+        pyaudio_open: Callable[P, R], /
+    ) -> Callable[Concatenate[QAudioDevice, P], R]:
+        def wrapped(device: QAudioDevice, *args: P.args, **kwargs: P.kwargs) -> R:
+            previous: str | None = environ.get("PIPEWIRE_NODE")
+            environ["PIPEWIRE_NODE"] = bytes(device.id().data()).decode()
+            try:
+                return pyaudio_open(*args, **kwargs)
+            finally:
+                if previous is None:
+                    environ.pop(key="PIPEWIRE_NODE", default=None)
+                else:
+                    environ["PIPEWIRE_NODE"] = previous
+
+        return wrapped
