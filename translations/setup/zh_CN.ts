@@ -4,7 +4,7 @@
 <context>
     <name>Setup</name>
     <message>
-        <location filename="../../src/setup/__init__.py" line="442"/>
+        <location filename="../../src/setup/__init__.py" line="446"/>
         <source>Unable to create the required folder in the local data directory. Please check permissions or available disk space.</source>
         <translation>程序无法在本地数据目录中创建所需的文件夹，请检查权限或磁盘空间。</translation>
     </message>
@@ -13,63 +13,63 @@
         <translation type="vanished">已有一个实例正在运行；请检查系统托盘。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="452"/>
+        <location filename="../../src/setup/__init__.py" line="456"/>
         <source>The installer is already running. Please do not launch it again.</source>
         <translation>安装程序已在运行，请勿重复启动。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="458"/>
+        <location filename="../../src/setup/__init__.py" line="462"/>
         <source>Could not create the single-instance lock. Check the directory permissions.</source>
         <translation>无法创建单实例锁；请检查目录权限。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="468"/>
+        <location filename="../../src/setup/__init__.py" line="472"/>
         <source>&lt; &amp;Back</source>
         <translation>&lt; 上一步(&amp;B)</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="471"/>
+        <location filename="../../src/setup/__init__.py" line="475"/>
         <source>&amp;Next &gt;</source>
         <translation>下一步(&amp;N) &gt;</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="474"/>
+        <location filename="../../src/setup/__init__.py" line="478"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="477"/>
-        <location filename="../../src/setup/__init__.py" line="539"/>
+        <location filename="../../src/setup/__init__.py" line="481"/>
+        <location filename="../../src/setup/__init__.py" line="543"/>
         <source>&amp;Accept &gt;</source>
         <translation>接受(&amp;A) &gt;</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="535"/>
+        <location filename="../../src/setup/__init__.py" line="539"/>
         <source>Failed to open the license file.</source>
         <translation>无法打开许可证文件。</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="558"/>
+        <location filename="../../src/setup/__init__.py" line="562"/>
         <source>Show details</source>
         <translation>显示详细信息</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="563"/>
+        <location filename="../../src/setup/__init__.py" line="567"/>
         <source>Hide details</source>
         <translation>隐藏详情信息</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="607"/>
+        <location filename="../../src/setup/__init__.py" line="611"/>
         <source>Detected</source>
         <translation>已安装</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="666"/>
+        <location filename="../../src/setup/__init__.py" line="670"/>
         <source>Sound Splitter installation Failed</source>
         <translation>SoundSplitter 安装失败</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="683"/>
+        <location filename="../../src/setup/__init__.py" line="687"/>
         <source>Warning: </source>
         <translation>警告：</translation>
     </message>
@@ -78,8 +78,8 @@
         <translation type="vanished">接受 &gt;</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="665"/>
-        <location filename="../../src/setup/__init__.py" line="670"/>
+        <location filename="../../src/setup/__init__.py" line="669"/>
+        <location filename="../../src/setup/__init__.py" line="674"/>
         <source>Critical: </source>
         <translation>严重错误：</translation>
     </message>
@@ -356,25 +356,25 @@
         <translation>安装失败：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="335"/>
-        <location filename="../../src/setup/__init__.py" line="353"/>
+        <location filename="../../src/setup/__init__.py" line="337"/>
+        <location filename="../../src/setup/__init__.py" line="355"/>
         <source>Copying file: </source>
         <translation>正在复制文件：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="343"/>
-        <location filename="../../src/setup/__init__.py" line="355"/>
+        <location filename="../../src/setup/__init__.py" line="345"/>
+        <location filename="../../src/setup/__init__.py" line="357"/>
         <source>Copy failed: </source>
         <translation>复制失败：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="371"/>
-        <location filename="../../src/setup/__init__.py" line="385"/>
+        <location filename="../../src/setup/__init__.py" line="375"/>
+        <location filename="../../src/setup/__init__.py" line="389"/>
         <source>Linking file: </source>
         <translation>正在链接文件：</translation>
     </message>
     <message>
-        <location filename="../../src/setup/__init__.py" line="401"/>
+        <location filename="../../src/setup/__init__.py" line="405"/>
         <source>Moving file: </source>
         <translation>正在移动文件</translation>
     </message>

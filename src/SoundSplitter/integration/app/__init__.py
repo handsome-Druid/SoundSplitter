@@ -34,6 +34,7 @@ from PySide6.QtMultimedia import QAudioDevice, QMediaDevices
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QListWidget,
     QListWidgetItem,
     QMainWindow,
@@ -66,7 +67,7 @@ class APP:
         if not self._hide:
             self._window.show()
             self._show_action.trigger()
-        elif QSystemTrayIcon.isSystemTrayAvailable():
+        elif self._tray_icon.isSystemTrayAvailable():
             self._hidden = getattr(self, "_hidden", set())
             self._hidden.add(self._window)
         else:
@@ -141,9 +142,9 @@ class APP:
                 lambda: self._volume.__exit__(None, None, None)
             )
             self._window.setWindowFlag(Qt.WindowType.WindowMaximizeButtonHint, on=False)
-            icon = QIcon(":/image/icon")
+            tray_icon = QIcon(":/image/tray")
             self._tray_icon = QSystemTrayIcon(
-                parent=self._window, toolTip=self._window.windowTitle(), icon=icon
+                parent=self._window, toolTip=self._window.windowTitle(), icon=tray_icon
             )
             self._tray_icon.activated.connect(self._on_tray_icon_activated)
             self._start_action = QAction(
@@ -163,7 +164,7 @@ class APP:
             self._hide_action = QAction(self.tr("Hide to Tray"), parent=self._window)
             self._hide_action.triggered.connect(self._on_hide_action_triggered)
             self._tray_menu = QMenu(
-                self._window.windowTitle(), parent=self._window, icon=icon
+                self._window.windowTitle(), parent=self._window, icon=tray_icon
             )
             self._tray_menu.addActions((self._show_action, self._hide_action))
             self._tray_menu.addSeparator()
@@ -176,17 +177,17 @@ class APP:
 
             def changeEvent(event: QEvent) -> None:
                 match event.type():
-                    case QEvent.Type.WindowStateChange if (
-                        self._window.isMinimized()
-                        and QSystemTrayIcon.isSystemTrayAvailable()
-                    ):
-                        self._hidden = getattr(self, "_hidden", set())
-                        self._hidden.update(
-                            widget
-                            for widget in self._app.topLevelWidgets()
-                            if widget.isVisible() and widget.hide() is None
-                        )
-                        event.accept()
+                    # case QEvent.Type.WindowStateChange if (
+                    #     self._window.isMinimized()
+                    #     and self._tray_icon.isSystemTrayAvailable()
+                    # ):
+                    #     self._hidden = getattr(self, "_hidden", set())
+                    #     self._hidden.update(
+                    #         widget
+                    #         for widget in self._app.topLevelWidgets()
+                    #         if widget.isVisible() and widget.hide() is None
+                    #     )
+                    #     event.accept()
                     case QEvent.Type.LanguageChange:
                         self._ui.retranslateUi(MainWindow=self._window)
                         self._start_action.setText(self._ui.startPushButton.text())
@@ -206,18 +207,31 @@ class APP:
             closeEvent_: Callable[[QCloseEvent], None] = self._window.closeEvent
 
             def closeEvent(event: QCloseEvent) -> None:
-                if (
-                    self._message_box.question(
-                        self._window,
-                        self._app.applicationName(),
-                        self.tr("Are you sure you want to exit?"),
-                        buttons=self._message_box.StandardButton.Yes
-                        | self._message_box.StandardButton.No,
-                        defaultButton=self._message_box.StandardButton.No,
-                    )
-                    == self._message_box.StandardButton.Yes
-                ):
-                    closeEvent_(event)
+                box = QMessageBox(self._window)
+                box.setWindowTitle(self._app.applicationName())
+                box.setIcon(QMessageBox.Icon.Question)
+                box.setText(self.tr("Are you sure you want to exit?"))
+                box.setStandardButtons(
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+                )
+                box.setDefaultButton(QMessageBox.StandardButton.No)
+                checkbox = QCheckBox(self.tr("Hide to tray instead of exiting"))
+                box.setCheckBox(checkbox)
+                checkbox.setChecked(True)
+                if box.exec() == self._message_box.StandardButton.Yes:
+                    if checkbox.isChecked():
+                        if self._tray_icon.isSystemTrayAvailable():
+                            self._hidden = getattr(self, "_hidden", set())
+                            self._hidden.update(
+                                widget
+                                for widget in self._app.topLevelWidgets()
+                                if widget.isVisible() and widget.hide() is None
+                            )
+                        else:
+                            self._window.showMinimized()
+                        event.ignore()
+                    else:
+                        closeEvent_(event)
                 else:
                     event.ignore()
 
@@ -253,6 +267,36 @@ class APP:
                     )
                     if self._startup_file.exists():
                         self._ui.startupCheckBox.setChecked(True)
+                        executable: str = QCoreApplication.applicationFilePath()
+                        exec_command: str = (
+                            executable.replace("\\", "\\\\\\\\")
+                            .replace('"', '\\\\"')
+                            .replace("`", "\\\\`")
+                            .replace("$", "\\\\$")
+                            .replace("%", "%%")
+                        )
+                        self._desktop_entry: dict[str, str] = {
+                            "Type": "Application",
+                            "Name": "SoundSplitter",
+                            "Exec": '/usr/bin/env pw-jack "'
+                            + exec_command
+                            + '" --hide',
+                            "TryExec": executable,
+                            "Terminal": "false",
+                        }
+                        settings = ConfigParser(interpolation=None)
+                        settings.optionxform = lambda optionstr: optionstr
+                        settings.read(
+                            filenames=self._startup_file.fileName(), encoding="utf-8"
+                        )
+                        if (
+                            settings.defaults()
+                            or settings.sections() != ["Desktop Entry"]
+                            or dict(settings["Desktop Entry"]) != self._desktop_entry
+                        ):
+                            self._on_startup_check_box_check_state_changed(
+                                state=Qt.CheckState.Checked
+                            )
                 self._ui.startupCheckBox.checkStateChanged.connect(
                     self._on_startup_check_box_check_state_changed
                 )
@@ -797,7 +841,7 @@ class APP:
 
     @Slot()
     def _on_hide_action_triggered(self) -> None:
-        if not QSystemTrayIcon.isSystemTrayAvailable():
+        if not self._tray_icon.isSystemTrayAvailable():
             self._window.showMinimized()
             return
         self._hidden: set[QWidget] = getattr(self, "_hidden", set())
@@ -898,24 +942,9 @@ class APP:
                 )
                 if not directory.mkpath("autostart"):
                     raise OSError("Cannot create autostart directory")
-                executable: str = QCoreApplication.applicationFilePath()
-                exec_command: str = (
-                    executable.replace("\\", "\\\\\\\\")
-                    .replace('"', '\\\\"')
-                    .replace("`", "\\\\`")
-                    .replace("$", "\\\\$")
-                    .replace("%", "%%")
-                )
-
                 settings = ConfigParser(interpolation=None)
                 settings.optionxform = lambda optionstr: optionstr
-                settings["Desktop Entry"] = {
-                    "Type": "Application",
-                    "Name": "SoundSplitter",
-                    "Exec": f'"{exec_command}" --hide',
-                    "TryExec": executable,
-                    "Terminal": "false",
-                }
+                settings["Desktop Entry"] = self._desktop_entry
                 with StringIO() as buffer:
                     settings.write(fp=buffer, space_around_delimiters=False)
                     content: bytes = buffer.getvalue().encode()
