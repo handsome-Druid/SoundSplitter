@@ -44,7 +44,8 @@ class DI:
                     .removeprefix("{")
                     .removesuffix("}")
                     + " jack.show-monitor=true jack.merge-monitor=true "
-                    "jack.short-name=false jack.filter-name=true jack.filter-char=_ }"
+                    + "jack.short-name=false jack.filter-name=true jack.filter-char=_ "
+                    + "node.dont-move=true }"
                 )
                 name = "CABLE Input (SoundSplitter)"
                 process = QProcess()

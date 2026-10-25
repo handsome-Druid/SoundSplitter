@@ -461,7 +461,7 @@ class Split(QObject):
         pyaudio_open: Callable[P, R], /
     ) -> Callable[Concatenate[QAudioDevice, P], R]:
         def wrapped(device: QAudioDevice, *args: P.args, **kwargs: P.kwargs) -> R:
-            previous: str | None = environ.get("PIPEWIRE_NODE")
+            previous: str | None = environ.get(key="PIPEWIRE_NODE")
             environ["PIPEWIRE_NODE"] = bytes(device.id().data()).decode()
             try:
                 return pyaudio_open(*args, **kwargs)
