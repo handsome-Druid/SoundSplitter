@@ -86,8 +86,8 @@ For example, if the right speaker is about `100` ms late, add `100` to the curre
 
 - Use the language selector to switch between the available interface languages; the selection is saved.
 - Enable **Launch at Startup** to start SoundSplitter in the background when you sign in.
-- Minimize the window or choose **Hide to Tray** to keep splitting in the background. Click the tray icon to show the window again. If your desktop has no system tray, the window stays minimized instead.
-- Closing the window asks whether to exit; it is not the same as hiding it. You can also choose **Exit** from the tray menu.
+- Click the close button, select **Hide to Tray** in the dialog, and confirm to keep splitting in the background. You can also choose **Hide to Tray** from the tray menu. Click the tray icon to show the window again. If your desktop has no system tray, the window stays minimized instead.
+- To exit, choose **Exit** from the tray menu, or click the close button and confirm exit.
 - Opening SoundSplitter again brings the existing window back rather than running a second copy.
 
 ## 4. Troubleshooting
@@ -122,10 +122,9 @@ Resampling can occur at any stage of the audio chain. Set capture and playback d
 
 ### Latency, buffering, and audio loss
 
-- **Windows:** both channel delays default to `0 ms`. The application maintains a minimum usable buffer internally.
-- **Linux:** both channel delays default to `30 ms`. Lower values reduce latency, but the application cannot guarantee a minimum usable buffer.
+Both channel delays default to `0 ms`. The application maintains a minimum usable buffer internally.
 
-On either system, check the log file for audio loss. Increasing both channel delays manually enlarges the buffers and can help reduce audio loss.
+Check the log file for audio loss. Increasing both channel delays manually enlarges the buffers and can help reduce audio loss.
 
 Log locations:
 
