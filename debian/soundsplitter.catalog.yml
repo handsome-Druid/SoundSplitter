@@ -1,0 +1,34 @@
+---
+File: DEP-11
+Version: '0.16'
+Origin: soundsplitter
+---
+Type: desktop-application
+ID: io.github.handsome_druid.SoundSplitter
+Package: soundsplitter
+ProjectLicense: BSD-3-Clause
+Name:
+  C: SoundSplitter
+Summary:
+  C: Route stereo channels to separate audio devices
+  zh_CN: 将立体声的左右声道输出到不同音频设备
+Description:
+  C: >-
+    <p>SoundSplitter routes left and right audio channels to separate devices,
+    with independent delay adjustment and volume monitoring.</p>
+DeveloperName:
+  C: SoundSplitter contributors
+Categories:
+- AudioVideo
+- Audio
+- Mixer
+Url:
+  homepage: https://github.com/handsome-Druid/SoundSplitter
+Icon:
+  remote:
+  - url: https://raw.githubusercontent.com/handsome-Druid/SoundSplitter/refs/heads/master/resources/icon.png
+    width: 256
+    height: 256
+Launchable:
+  desktop-id:
+  - soundsplitter.desktop

@@ -16,6 +16,8 @@ override_dh_auto_install:
 	install -D -m 0644 debian/soundsplitter.desktop debian/soundsplitter/usr/share/applications/soundsplitter.desktop
 	install -D -m 0644 debian/io.github.handsome_druid.SoundSplitter.metainfo.xml \
 		debian/soundsplitter/usr/share/metainfo/io.github.handsome_druid.SoundSplitter.metainfo.xml
+	install -D -m 0644 debian/soundsplitter.catalog.yml \
+		debian/soundsplitter/usr/share/swcatalog/yaml/soundsplitter.yml
 	install -D -m 0644 src/SoundSplitter/integration/app/resources/SS_headphones_solid_cute.svg \
 		debian/soundsplitter/usr/share/icons/hicolor/scalable/apps/soundsplitter.svg
 
