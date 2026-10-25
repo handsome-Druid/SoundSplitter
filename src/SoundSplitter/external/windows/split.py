@@ -275,9 +275,9 @@ class Split(QObject):
                     del self._pyaudio
         finally:
             self._mutex.unlock()
-            if not self.thread().isMainThread():
-                self.thread().quit()
             if is_running:
+                if not self.thread().isMainThread():
+                    self.thread().quit()
                 self.finished.emit(exc_type, exc, tb)
 
     @Slot(object, object, object)

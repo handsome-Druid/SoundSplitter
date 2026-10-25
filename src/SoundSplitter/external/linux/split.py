@@ -124,8 +124,6 @@ class Split(QObject):
                 device_info: Mapping[str, str | int | float] = (
                     self._pyaudio.get_device_info_by_index(device_index=i)
                 )
-                print("alsa_index:", alsa_index)
-                print("device:", i, repr(device_info["name"]), device_info["hostApi"])
                 if (
                     device_info["hostApi"] == jack_index
                     and device_info["name"] == source_name
@@ -295,9 +293,9 @@ class Split(QObject):
                     del self._pyaudio
         finally:
             self._mutex.unlock()
-            if not self.thread().isMainThread():
-                self.thread().quit()
             if is_running:
+                if not self.thread().isMainThread():
+                    self.thread().quit()
                 self.finished.emit(exc_type, exc, tb)
 
     @Slot(object, object, object)

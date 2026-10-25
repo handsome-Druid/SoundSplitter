@@ -185,6 +185,8 @@ class Start(QObject):
                         del self._exit_conn
                     else:
                         self._split.__exit__(exc_type, exc, tb)
+                        self._split.deleteLater()
+                    del self._split
             finally:
                 if not self._thread.wait(1000):
                     self._thread.quit()
@@ -235,6 +237,7 @@ class Start(QObject):
                 lambda: self._split(None, None, None),
                 type=Qt.ConnectionType.DirectConnection,
             )
+            self._thread.finished.connect(self._split.deleteLater)
             self._exit_conn: QMetaObject.Connection = self._split_exit.connect(
                 self._split.__exit__
             )
