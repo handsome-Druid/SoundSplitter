@@ -41,6 +41,7 @@ install -Dpm 0755 "%{_sourcedir}/rpm/soundsplitter-launcher" %{buildroot}%{_bind
 sed -i 's|@LIBDIR@|%{_libdir}|g' %{buildroot}%{_bindir}/soundsplitter
 install -Dpm 0644 "%{_sourcedir}/rpm/soundsplitter.desktop" %{buildroot}%{_datadir}/applications/soundsplitter.desktop
 install -Dpm 0644 "%{_sourcedir}/rpm/io.github.handsome_druid.SoundSplitter.metainfo.xml" %{buildroot}%{_datadir}/metainfo/io.github.handsome_druid.SoundSplitter.metainfo.xml
+install -Dpm 0644 "%{_sourcedir}/rpm/soundsplitter.catalog.yml" %{buildroot}%{_sharedstatedir}/swcatalog/yaml/soundsplitter.yml
 install -Dpm 0644 "%{_sourcedir}/src/SoundSplitter/integration/app/resources/SS_headphones_solid_cute.svg" %{buildroot}%{_datadir}/icons/hicolor/scalable/apps/soundsplitter.svg
 install -Dpm 0644 "%{_sourcedir}/rpm/soundsplitter.tmpfiles" %{buildroot}%{_tmpfilesdir}/soundsplitter.conf
 install -Dpm 0644 "%{_sourcedir}/rpm/copyright" %{buildroot}%{_licensedir}/%{name}/copyright
@@ -55,6 +56,7 @@ install -Dpm 0644 "%{_sourcedir}/rpm/copyright" %{buildroot}%{_licensedir}/%{nam
 %{_bindir}/soundsplitter
 %{_datadir}/applications/soundsplitter.desktop
 %{_datadir}/metainfo/io.github.handsome_druid.SoundSplitter.metainfo.xml
+%{_sharedstatedir}/swcatalog/yaml/soundsplitter.yml
 %{_datadir}/icons/hicolor/scalable/apps/soundsplitter.svg
 %{_tmpfilesdir}/soundsplitter.conf
 %ghost %dir %attr(1777,root,root) %{_sharedstatedir}/SoundSplitter

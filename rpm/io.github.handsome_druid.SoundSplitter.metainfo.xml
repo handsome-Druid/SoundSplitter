@@ -27,6 +27,9 @@
     <name>SoundSplitter contributors</name>
   </developer>
   <launchable type="desktop-id">soundsplitter.desktop</launchable>
+  <releases>
+    <release version="2.2.7" date="2026-10-26"/>
+  </releases>
   <provides>
     <binary>soundsplitter</binary>
   </provides>

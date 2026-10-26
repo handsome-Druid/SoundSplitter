@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from datetime import date
 from os import chdir, environ, pathsep
 from pathlib import Path
 from re import sub
@@ -214,6 +215,30 @@ else:
             args=("uvx", "hatch", "version"), capture_output=True, text=True, check=True
         ).stdout.strip()
         if platform == "linux":
+            release_date: str = date.today().isoformat()
+            for directory in ("debian", "rpm"):
+                for filename, pattern, replacement in (
+                    (
+                        "io.github.handsome_druid.SoundSplitter.metainfo.xml",
+                        r'<release version="[^"]+" date="[^"]+"\s*/>',
+                        f'<release version="{version}" date="{release_date}"/>',
+                    ),
+                    (
+                        "soundsplitter.catalog.yml",
+                        r"(?m)^- version: '[^']+'\n  date: '[^']+'",
+                        f"- version: '{version}'\n  date: '{release_date}'",
+                    ),
+                ):
+                    metadata_path: Path = Path(directory) / filename
+                    metadata_path.write_text(
+                        data=sub(
+                            pattern=pattern,
+                            repl=replacement,
+                            string=metadata_path.read_text(encoding="utf-8"),
+                            count=1,
+                        ),
+                        encoding="utf-8",
+                    )
             run(
                 args=(
                     "uv",

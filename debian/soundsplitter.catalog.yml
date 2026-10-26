@@ -32,3 +32,6 @@ Icon:
 Launchable:
   desktop-id:
   - soundsplitter.desktop
+Releases:
+- version: '2.2.7'
+  date: '2026-10-26'
