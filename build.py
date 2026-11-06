@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from datetime import date
+from datetime import UTC, datetime
 from os import chdir, environ, pathsep
 from pathlib import Path
 from re import sub
@@ -215,7 +215,7 @@ else:
             args=("uvx", "hatch", "version"), capture_output=True, text=True, check=True
         ).stdout.strip()
         if platform == "linux":
-            release_date: str = date.today().isoformat()
+            release_date: str = datetime.now(tz=UTC).date().isoformat()
             for directory in ("debian", "rpm"):
                 for filename, pattern, replacement in (
                     (
