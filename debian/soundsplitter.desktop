@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=SoundSplitter
+GenericName=Stereo Audio Splitter
+GenericName[zh_CN]=立体声音频分流工具
+Comment=Route left and right audio channels to separate output devices
+Comment[zh_CN]=将左右声道分别输出到两个音频设备
+Exec=/usr/bin/soundsplitter
+TryExec=/usr/bin/soundsplitter
+Icon=soundsplitter
+Terminal=false
+Categories=AudioVideo;Audio;Mixer;
+StartupNotify=false

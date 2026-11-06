@@ -4,28 +4,28 @@
 <context>
     <name>Uninstall</name>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="93"/>
+        <location filename="../../src/uninstall/__init__.py" line="92"/>
         <source>Unable to create the required folder in the local data directory. Please check permissions or available disk space.</source>
         <translation>程序无法在本地数据目录中创建所需的文件夹，请检查权限或磁盘空间。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="109"/>
+        <location filename="../../src/uninstall/__init__.py" line="108"/>
         <source>&lt; &amp;Back</source>
         <translation>&lt; 上一步(&amp;B)</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="112"/>
+        <location filename="../../src/uninstall/__init__.py" line="111"/>
         <source>&amp;Next &gt;</source>
         <translation>下一步(&amp;N) &gt;</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="116"/>
+        <location filename="../../src/uninstall/__init__.py" line="115"/>
         <source>Cancel</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="120"/>
-        <location filename="../../src/uninstall/__init__.py" line="741"/>
+        <location filename="../../src/uninstall/__init__.py" line="119"/>
+        <location filename="../../src/uninstall/__init__.py" line="702"/>
         <source>&amp;Uninstall</source>
         <translation>卸载(&amp;U)</translation>
     </message>
@@ -40,55 +40,55 @@
         <translation>无法创建单实例锁；请检查目录权限。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="641"/>
+        <location filename="../../src/uninstall/__init__.py" line="602"/>
         <source>Warning: </source>
         <translation>警告：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="666"/>
+        <location filename="../../src/uninstall/__init__.py" line="627"/>
         <source>Unable to remove the temporary directory: </source>
         <translation>无法删除临时目录：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="670"/>
-        <location filename="../../src/uninstall/__init__.py" line="673"/>
+        <location filename="../../src/uninstall/__init__.py" line="631"/>
+        <location filename="../../src/uninstall/__init__.py" line="634"/>
         <source>Uninstallation Failed!</source>
         <translation>卸载失败！</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="671"/>
-        <location filename="../../src/uninstall/__init__.py" line="674"/>
+        <location filename="../../src/uninstall/__init__.py" line="632"/>
+        <location filename="../../src/uninstall/__init__.py" line="635"/>
         <source>Uninstallation failed!</source>
         <translation>卸载失败！</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="685"/>
+        <location filename="../../src/uninstall/__init__.py" line="646"/>
         <source>Critical: </source>
         <translation>严重错误：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="724"/>
+        <location filename="../../src/uninstall/__init__.py" line="685"/>
         <source>Failed to schedule temporary directory cleanup on restart: </source>
         <translation>无法登记系统重启后清理临时目录的任务：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="767"/>
-        <location filename="../../src/uninstall/__init__.py" line="813"/>
+        <location filename="../../src/uninstall/__init__.py" line="728"/>
+        <location filename="../../src/uninstall/__init__.py" line="774"/>
         <source>Uninstallation failed: </source>
         <translation>卸载失败：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="770"/>
+        <location filename="../../src/uninstall/__init__.py" line="731"/>
         <source>SoundSplitter has been removed from your computer.</source>
         <translation>SoundSplitter 已从您的计算机中卸载。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="772"/>
+        <location filename="../../src/uninstall/__init__.py" line="733"/>
         <source>Uninstallation complete.</source>
         <translation>卸载完成。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="825"/>
+        <location filename="../../src/uninstall/__init__.py" line="786"/>
         <source>The temporary uninstaller did not complete the handoff within 10 seconds: </source>
         <translation>临时目录中的卸载程序未能在 10 秒内完成交接：</translation>
     </message>
@@ -172,35 +172,35 @@
 <context>
     <name>_Copy</name>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="471"/>
+        <location filename="../../src/uninstall/__init__.py" line="432"/>
         <source>Uninstaller payload is missing: </source>
         <translation>缺少卸载程序文件：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="492"/>
-        <location filename="../../src/uninstall/__init__.py" line="516"/>
+        <location filename="../../src/uninstall/__init__.py" line="453"/>
+        <location filename="../../src/uninstall/__init__.py" line="477"/>
         <source>Unable to read directory: </source>
         <translation>无法读取目录：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="501"/>
-        <location filename="../../src/uninstall/__init__.py" line="526"/>
+        <location filename="../../src/uninstall/__init__.py" line="462"/>
+        <location filename="../../src/uninstall/__init__.py" line="487"/>
         <source>Links are not supported in the payload: </source>
         <translation>卸载文件中不支持符号链接或目录联接：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="510"/>
+        <location filename="../../src/uninstall/__init__.py" line="471"/>
         <source>Copying file: </source>
         <translation>正在复制文件：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="512"/>
-        <location filename="../../src/uninstall/__init__.py" line="540"/>
+        <location filename="../../src/uninstall/__init__.py" line="473"/>
+        <location filename="../../src/uninstall/__init__.py" line="501"/>
         <source>Copy failed: </source>
         <translation>复制失败：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="535"/>
+        <location filename="../../src/uninstall/__init__.py" line="496"/>
         <source>Linking file: </source>
         <translation>正在链接文件：</translation>
     </message>
@@ -208,12 +208,12 @@
 <context>
     <name>_Setp2</name>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="569"/>
+        <location filename="../../src/uninstall/__init__.py" line="530"/>
         <source>Unable to start the temporary uninstaller: </source>
         <translation>无法启动临时目录中的卸载程序：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="584"/>
+        <location filename="../../src/uninstall/__init__.py" line="545"/>
         <source>Uninstallation failed: </source>
         <translation>卸载失败：</translation>
     </message>
@@ -221,68 +221,68 @@
 <context>
     <name>_Uninstall</name>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="295"/>
+        <location filename="../../src/uninstall/__init__.py" line="288"/>
         <source>Failed to connect to the original uninstaller: </source>
         <translation>无法连接到原卸载程序：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="324"/>
+        <location filename="../../src/uninstall/__init__.py" line="306"/>
         <source>Failed to acquire the uninstaller lock after the original process exited.</source>
         <translation>未能在原卸载进程退出后获取卸载锁。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="331"/>
+        <location filename="../../src/uninstall/__init__.py" line="312"/>
         <source>Uninstallation failed: </source>
         <translation>卸载失败：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="347"/>
+        <location filename="../../src/uninstall/__init__.py" line="328"/>
         <source>Closing the running instance: </source>
         <translation>正在关闭运行中的实例：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="362"/>
-        <location filename="../../src/uninstall/__init__.py" line="385"/>
+        <location filename="../../src/uninstall/__init__.py" line="336"/>
+        <location filename="../../src/uninstall/__init__.py" line="347"/>
         <source>Failed to close the running instance. Please close it manually and try again.</source>
         <translation>无法关闭正在运行的实例，请手动关闭后重试。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="392"/>
+        <location filename="../../src/uninstall/__init__.py" line="353"/>
         <source>Deleting the installation directory: </source>
         <translation>正在删除安装目录：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="397"/>
+        <location filename="../../src/uninstall/__init__.py" line="358"/>
         <source>Failed to remove the installation directory: </source>
         <translation>无法删除安装目录：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="412"/>
+        <location filename="../../src/uninstall/__init__.py" line="373"/>
         <source>Deleting shortcut: </source>
         <translation>正在删除快捷方式：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="415"/>
+        <location filename="../../src/uninstall/__init__.py" line="376"/>
         <source>Failed to delete shortcut: </source>
         <translation>无法删除快捷方式：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="428"/>
+        <location filename="../../src/uninstall/__init__.py" line="389"/>
         <source>Deleting registry entry: </source>
         <translation>正在删除注册表项：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="434"/>
+        <location filename="../../src/uninstall/__init__.py" line="395"/>
         <source>Failed to remove registry entries.</source>
         <translation>无法删除注册表项。</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="440"/>
+        <location filename="../../src/uninstall/__init__.py" line="401"/>
         <source>Deleting user data: </source>
         <translation>正在删除用户数据：</translation>
     </message>
     <message>
-        <location filename="../../src/uninstall/__init__.py" line="443"/>
+        <location filename="../../src/uninstall/__init__.py" line="404"/>
         <source>Failed to remove the user data directory: </source>
         <translation>无法删除用户数据目录：</translation>
     </message>

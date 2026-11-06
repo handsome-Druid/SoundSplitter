@@ -1,4 +1,4 @@
-from ctypes import COMError
+from ctypes import COMError  # pyright: ignore[reportAttributeAccessIssue]
 from types import TracebackType
 from typing import Protocol, Self, cast, override
 

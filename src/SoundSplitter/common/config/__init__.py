@@ -1,4 +1,5 @@
-from sys import platform
+from pathlib import Path
+from sys import argv, platform
 from typing import ClassVar, override
 
 from pydantic import ConfigDict, ValidationError
@@ -101,7 +102,7 @@ class Config(V2):
     @staticmethod
     def from_disk() -> Config:
         if "__compiled__" in globals():
-            Config.containing_dir = QDir(globals()["__compiled__"].containing_dir)
+            Config.containing_dir = QDir(path=Path(argv[0]).parent)
         else:
             Config.containing_dir = QFileInfo(__file__).absoluteDir()
             for _ in range(4):
@@ -118,9 +119,12 @@ class Config(V2):
                 + app.applicationName()
             )
         else:
-            path = QStandardPaths.writableLocation(
-                QStandardPaths.StandardLocation.AppLocalDataLocation
-            )
+            if "__compiled__" in globals():
+                path = "/var/lib/" + app.applicationName()
+            else:
+                path = QStandardPaths.writableLocation(
+                    QStandardPaths.StandardLocation.AppLocalDataLocation
+                )
         if not QDir().mkpath(path):
             raise OSError(
                 Config.tr(

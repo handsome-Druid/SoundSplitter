@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+
+exec /usr/bin/pw-jack @LIBDIR@/SoundSplitter/SoundSplitter.bin "$@"

@@ -18,6 +18,7 @@ from logging.handlers import RotatingFileHandler
 from types import TracebackType
 from typing import ClassVar, Literal, TextIO, override
 
+import av.logging
 from PySide6.QtCore import (
     QEvent,
     QObject,
@@ -116,9 +117,11 @@ class Logger(QObject):
             sys.argv.remove("--debug")
             self._debug = True
             basicConfig(level=DEBUG, handlers=(stream_handler, rotating_file_handler))
+            av.logging.set_level(level=av.logging.DEBUG)
         else:
             self._debug = False
             basicConfig(level=INFO, handlers=(stream_handler, rotating_file_handler))
+            av.logging.set_level(level=av.logging.VERBOSE)
         qInstallMessageHandler(
             lambda msg_type, context, message: getLogger(name=context.category).log(
                 level=self._levels[msg_type], msg=message
