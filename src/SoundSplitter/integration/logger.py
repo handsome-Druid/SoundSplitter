@@ -118,12 +118,16 @@ class Logger(QObject):
             self._debug = True
             basicConfig(level=DEBUG, handlers=(stream_handler, rotating_file_handler))
             av.logging.set_level(level=av.logging.VERBOSE)
-            getLogger(name="libav").setLevel(av.logging.adapt_level(av.logging.VERBOSE))
+            getLogger(name="libav").setLevel(
+                level=av.logging.adapt_level(level=av.logging.VERBOSE)
+            )
         else:
             self._debug = False
             basicConfig(level=INFO, handlers=(stream_handler, rotating_file_handler))
             av.logging.set_level(level=av.logging.INFO)
-            getLogger(name="libav").setLevel(av.logging.adapt_level(av.logging.INFO))
+            getLogger(name="libav").setLevel(
+                level=av.logging.adapt_level(level=av.logging.INFO)
+            )
         qInstallMessageHandler(
             lambda msg_type, context, message: getLogger(name=context.category).log(
                 level=self._levels[msg_type], msg=message
